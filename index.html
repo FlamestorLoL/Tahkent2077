@@ -1,0 +1,4568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>TASHKENT 2077 — Engineering the City of Tomorrow</title>
+  
+  <!-- Modern Futuristic Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Core 3D & Animation Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+
+  <style>
+    /* -------------------------------------------------------------
+       DESIGN TOKENS & CYBERPUNK-ELEGANT STYLING (TASHKENT 2077)
+       ------------------------------------------------------------- */
+    :root {
+      --bg-space: #03060f;
+      --bg-panel: rgba(10, 15, 29, 0.88);
+      --bg-glass-card: rgba(15, 23, 42, 0.78);
+      --bg-glass-hover: rgba(30, 41, 59, 0.92);
+      
+      --cyan-bright: #00f0ff;
+      --cyan-glow: rgba(0, 240, 255, 0.5);
+      --purple-electric: #a855f7;
+      --purple-glow: rgba(168, 85, 247, 0.5);
+      --magenta-neon: #ec4899;
+      --magenta-glow: rgba(236, 72, 153, 0.5);
+      --emerald-neon: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.5);
+      --wheat-gold: #facc15;
+      --wheat-glow: rgba(250, 204, 21, 0.5);
+      --amber-warm: #f59e0b;
+      
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      
+      --border-subtle: rgba(255, 255, 255, 0.1);
+      --border-highlight: rgba(0, 240, 255, 0.42);
+      --border-purple: rgba(168, 85, 247, 0.45);
+      --border-magenta: rgba(236, 72, 153, 0.45);
+      --border-emerald: rgba(16, 185, 129, 0.45);
+      --border-wheat: rgba(250, 204, 21, 0.45);
+      
+      --font-display: 'Space Grotesk', -apple-system, sans-serif;
+      --font-body: 'Inter', -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      
+      --blur-glass: blur(18px);
+      --shadow-cinema: 0 20px 50px rgba(0, 0, 0, 0.75);
+      --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-space);
+      color: var(--text-main);
+      font-family: var(--font-body);
+    }
+
+    /* Background 3D Canvas & Vignette */
+    #webgl-canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    #webgl-canvas-container.interactive-mode {
+      pointer-events: auto;
+      cursor: grab;
+    }
+    #webgl-canvas-container.interactive-mode:active {
+      cursor: grabbing;
+    }
+
+    .cinema-vignette {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background: radial-gradient(circle at 50% 50%, rgba(3, 6, 15, 0) 30%, rgba(2, 4, 10, 0.72) 85%, rgba(1, 2, 6, 0.95) 100%);
+    }
+
+    .ambient-grid {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0.1;
+      background-image: 
+        linear-gradient(to right, rgba(0, 240, 255, 0.1) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(0, 240, 255, 0.1) 1px, transparent 1px);
+      background-size: 70px 70px;
+      mask-image: radial-gradient(circle at 50% 50%, black 25%, transparent 80%);
+      -webkit-mask-image: radial-gradient(circle at 50% 50%, black 25%, transparent 80%);
+    }
+
+    /* -------------------------------------------------------------
+       TOP HUD (PERSISTENT HEADER)
+       ------------------------------------------------------------- */
+    .top-hud {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 72px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+      pointer-events: auto;
+      background: linear-gradient(180deg, rgba(3, 6, 15, 0.95) 0%, rgba(3, 6, 15, 0) 100%);
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-symbol {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border-highlight);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 240, 255, 0.08);
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+    }
+
+    .brand-symbol svg {
+      width: 22px;
+      height: 22px;
+      fill: none;
+      stroke: var(--cyan-bright);
+      stroke-width: 2;
+    }
+
+    .brand-titles {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .brand-main {
+      font-family: var(--font-display);
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #fff;
+    }
+
+    .brand-main span {
+      color: var(--cyan-bright);
+    }
+
+    .brand-sub {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--magenta-neon);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .header-center-info {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 18px;
+      background: var(--bg-panel);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 30px;
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--cyan-bright);
+      box-shadow: 0 0 10px var(--cyan-bright);
+      animation: pulseGlow 2s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.85); }
+    }
+
+    .slide-badge-title {
+      font-size: 12px;
+      font-family: var(--font-mono);
+      font-weight: 500;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hud-btn {
+      background: var(--bg-panel);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+      height: 38px;
+      padding: 0 14px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      transition: all 0.25s var(--ease-smooth);
+    }
+
+    .hud-btn:hover, .hud-btn.active {
+      color: #fff;
+      border-color: var(--border-highlight);
+      background: rgba(0, 240, 255, 0.12);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.2);
+    }
+
+    .hud-btn svg {
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    /* -------------------------------------------------------------
+       SLIDE FRAMEWORK & TYPOGRAPHY (16:9 Adaptability)
+       ------------------------------------------------------------- */
+    #presentation-viewport {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .slide-stage {
+      width: 100%;
+      max-width: 1560px;
+      height: 100%;
+      max-height: 880px;
+      position: relative;
+      padding: 85px 48px 95px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 85px 48px 95px 48px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transform: translateY(20px) scale(0.99);
+      transition: opacity 0.65s var(--ease-smooth), transform 0.65s var(--ease-smooth), visibility 0.65s;
+    }
+
+    .slide.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+      transform: translateY(0) scale(1);
+    }
+
+    .slide-heading-block {
+      max-width: 1000px;
+    }
+
+    .slide-meta-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 2px;
+      color: var(--cyan-bright);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .slide-meta-tag::before {
+      content: '';
+      display: inline-block;
+      width: 14px;
+      height: 1px;
+      background: var(--cyan-bright);
+    }
+
+    .slide-title {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 3.6vw, 50px);
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -0.02em;
+      color: #fff;
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      text-shadow: 0 4px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .slide-title span.glow-cyan {
+      color: var(--cyan-bright);
+      text-shadow: 0 0 28px var(--cyan-glow);
+    }
+
+    .slide-title span.glow-purple {
+      color: var(--purple-electric);
+      text-shadow: 0 0 28px var(--purple-glow);
+    }
+
+    .slide-title span.glow-emerald {
+      color: var(--emerald-neon);
+      text-shadow: 0 0 28px var(--emerald-glow);
+    }
+
+    .slide-title span.glow-wheat {
+      color: var(--wheat-gold);
+      text-shadow: 0 0 28px var(--wheat-glow);
+    }
+
+    .slide-title span.glow-magenta {
+      color: var(--magenta-neon);
+      text-shadow: 0 0 28px var(--magenta-glow);
+    }
+
+    .slide-subtitle {
+      font-family: var(--font-body);
+      font-size: clamp(14px, 1.25vw, 19px);
+      font-weight: 300;
+      color: #cbd5e1;
+      letter-spacing: -0.01em;
+      line-height: 1.4;
+      font-style: italic;
+    }
+
+    /* -------------------------------------------------------------
+       SLIDE BODY CARDS & CHALLENGE / SOLUTION ARCHITECTURE
+       ------------------------------------------------------------- */
+    .slide-body-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+      align-items: end;
+      margin-top: auto;
+    }
+
+    .glass-card {
+      background: var(--bg-glass-card);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: var(--shadow-cinema);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s var(--ease-smooth);
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    }
+
+    .glass-card:hover {
+      border-color: rgba(255, 255, 255, 0.24);
+      transform: translateY(-2px);
+    }
+
+    .hero-stat-card {
+      padding: 24px 20px;
+      border-left: 3px solid var(--cyan-bright);
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);
+    }
+
+    .stat-number-hero {
+      font-family: var(--font-display);
+      font-size: clamp(34px, 3.8vw, 58px);
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.03em;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .stat-number-hero .unit {
+      font-size: 0.45em;
+      color: var(--cyan-bright);
+      margin-left: 4px;
+    }
+
+    .stat-label-hero {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .cs-card {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .cs-tag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 6px;
+      width: fit-content;
+      font-weight: 600;
+    }
+
+    .cs-tag.challenge {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .cs-tag.solution {
+      background: rgba(0, 240, 255, 0.15);
+      color: var(--cyan-bright);
+      border: 1px solid var(--border-highlight);
+    }
+
+    .cs-tag.greenpath {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--emerald-neon);
+      border: 1px solid var(--border-emerald);
+    }
+
+    .cs-tag.wheat {
+      background: rgba(250, 204, 21, 0.15);
+      color: var(--wheat-gold);
+      border: 1px solid var(--border-wheat);
+    }
+
+    .metric-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .metric-row:last-child { border-bottom: none; }
+
+    .metric-name {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .metric-val {
+      font-family: var(--font-mono);
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    /* Interactive District Selector Grid */
+    .district-selector-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .d-pill {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .d-pill:hover, .d-pill.active {
+      background: var(--cyan-bright);
+      color: #020617;
+      font-weight: 600;
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    /* Subterranean Cross-Section Diagram in Slide 5 */
+    .metro-cross-section {
+      width: 100%;
+      height: 100%;
+      border-radius: 12px;
+      background: radial-gradient(circle at 50% 50%, #0d172b 0%, #050a14 100%);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid rgba(0, 240, 255, 0.2);
+    }
+
+    .tier-diagram-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 7px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border-left: 3px solid var(--cyan-bright);
+    }
+
+    .tier-depth-badge {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--cyan-bright);
+      width: 60px;
+    }
+
+    .tier-content-box { flex: 1; }
+
+    .tier-title-label {
+      font-family: var(--font-display);
+      font-size: 13px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .tier-desc-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Interactive Seismic Physics Panel (Slide 6) */
+    .interactive-canvas-panel {
+      position: relative;
+      width: 100%;
+      height: 350px;
+      border-radius: 16px;
+      overflow: hidden;
+      background: rgba(5, 10, 20, 0.88);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .canvas-hud-overlay {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 5;
+      display: flex;
+      gap: 8px;
+    }
+
+    .canvas-hud-pill {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 5px 12px;
+      border-radius: 20px;
+      background: rgba(15, 23, 42, 0.85);
+      border: 1px solid var(--border-subtle);
+      color: var(--cyan-bright);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .canvas-hud-pill.active {
+      background: var(--cyan-bright);
+      color: #030712;
+      border-color: var(--cyan-bright);
+      font-weight: 600;
+    }
+
+    /* Explorer HUD (Slide 10 - Full 3D Interactive) */
+    .explorer-hud-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 85px 40px 95px 40px;
+    }
+
+    .explorer-controls-panel {
+      pointer-events: auto;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* SUBTERRANEAN X-RAY & METRO CONTROLS BAR */
+    .underground-control-bar {
+      pointer-events: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(8, 14, 30, 0.94);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+      border: 1px solid var(--border-highlight);
+      border-radius: 12px;
+      padding: 8px 14px;
+      margin-top: 8px;
+      width: fit-content;
+      max-width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      z-index: 45;
+      cursor: default;
+    }
+
+    .drag-grip-handle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: grab;
+      color: var(--cyan-bright);
+      padding: 2px 4px;
+      border-radius: 4px;
+      background: rgba(0, 240, 255, 0.08);
+    }
+    .drag-grip-handle:active {
+      cursor: grabbing;
+      background: rgba(0, 240, 255, 0.2);
+    }
+    .drag-grip-handle svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .xray-slider-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--cyan-bright);
+      text-transform: uppercase;
+    }
+
+    .xray-slider-group input[type="range"] {
+      width: 100px;
+      accent-color: var(--cyan-bright);
+      cursor: pointer;
+    }
+
+    /* DISTRICT QUICK-REDIRECT BAR (Click redirects 3D camera) */
+    .district-redirect-bar {
+      pointer-events: auto;
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      background: rgba(8, 12, 24, 0.88);
+      backdrop-filter: var(--blur-glass);
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--border-highlight);
+      margin-top: 8px;
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .d-nav-btn {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .d-nav-btn:hover, .d-nav-btn.active {
+      background: var(--cyan-bright);
+      color: #020617;
+      font-weight: 700;
+      border-color: var(--cyan-bright);
+      box-shadow: 0 0 12px var(--cyan-glow);
+    }
+
+    /* DRAGGABLE & MINIMIZABLE EXPLORER BUILDING CARD */
+    .explorer-building-card {
+      pointer-events: auto;
+      position: absolute;
+      right: 36px;
+      bottom: 100px;
+      width: 410px;
+      max-width: calc(100vw - 40px);
+      background: var(--bg-panel);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+      border: 1px solid var(--border-highlight);
+      border-radius: 16px;
+      padding: 16px 18px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+      transform: translateY(10px);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s var(--ease-smooth), transform 0.3s var(--ease-smooth), border-color 0.25s, box-shadow 0.25s;
+      z-index: 46;
+      cursor: default;
+    }
+
+    .explorer-building-card.active {
+      transform: translateY(0);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .explorer-building-card.dragging {
+      opacity: 0.96;
+      border-color: var(--cyan-bright);
+      box-shadow: 0 25px 60px rgba(0, 240, 255, 0.35);
+      transition: none;
+    }
+
+    .card-drag-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      margin-bottom: 10px;
+      cursor: grab;
+      user-select: none;
+    }
+    .card-drag-header:active {
+      cursor: grabbing;
+    }
+
+    .card-drag-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow: hidden;
+    }
+
+    .card-drag-grip-icon {
+      width: 14px;
+      height: 14px;
+      fill: var(--cyan-bright);
+      opacity: 0.7;
+      flex-shrink: 0;
+    }
+
+    .card-window-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .card-ctrl-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .card-ctrl-btn:hover {
+      color: #fff;
+      background: rgba(0, 240, 255, 0.2);
+      border-color: var(--cyan-bright);
+    }
+
+    .card-collapsible-body {
+      transition: max-height 0.3s var(--ease-smooth), opacity 0.25s var(--ease-smooth);
+      overflow: hidden;
+    }
+
+    .explorer-building-card.minimized {
+      padding: 10px 14px;
+      width: 280px;
+    }
+    .explorer-building-card.minimized .card-drag-header {
+      padding-bottom: 0;
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+    .explorer-building-card.minimized .card-collapsible-body {
+      display: none;
+    }
+
+    .building-badge {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--cyan-bright);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .building-name {
+      font-family: var(--font-display);
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 4px;
+    }
+
+    .building-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .b-stat {
+      background: rgba(255, 255, 255, 0.04);
+      padding: 7px 10px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .b-stat-label {
+      font-size: 9px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+    }
+
+    .b-stat-value {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      margin-top: 2px;
+    }
+
+    /* Ledger Table (Slide 11) */
+    .ledger-table-wrap {
+      width: 100%;
+      height: 360px;
+      overflow-y: auto;
+      border-radius: 12px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(8, 12, 24, 0.85);
+    }
+
+    .ledger-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+      text-align: left;
+    }
+
+    .ledger-table th {
+      position: sticky;
+      top: 0;
+      background: #0f172a;
+      padding: 10px 14px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 1px;
+      color: var(--cyan-bright);
+      text-transform: uppercase;
+      border-bottom: 1px solid var(--border-highlight);
+    }
+
+    .ledger-table td {
+      padding: 9px 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: #cbd5e1;
+    }
+
+    .ledger-table tr:hover {
+      background: rgba(0, 240, 255, 0.08);
+      cursor: pointer;
+    }
+
+    /* References Grid (Slide 12) */
+    .reference-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .ref-card {
+      background: var(--bg-glass-card);
+      backdrop-filter: var(--blur-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 14px;
+      text-decoration: none;
+      color: inherit;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.25s var(--ease-smooth);
+    }
+
+    .ref-card:hover {
+      border-color: var(--border-highlight);
+      background: var(--bg-glass-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(0, 240, 255, 0.15);
+    }
+
+    .ref-source {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      color: var(--cyan-bright);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .ref-title {
+      font-family: var(--font-display);
+      font-size: 12.5px;
+      font-weight: 600;
+      line-height: 1.35;
+      color: #fff;
+      margin-bottom: 6px;
+    }
+
+    .ref-desc {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 8px;
+    }
+
+    .ref-link-action {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10.5px;
+      font-family: var(--font-mono);
+      color: var(--cyan-bright);
+    }
+
+    .ref-link-action svg {
+      width: 12px;
+      height: 12px;
+      stroke: currentColor;
+    }
+
+    /* -------------------------------------------------------------
+       BOTTOM PRESENTATION CONTROLLER & HUD
+       ------------------------------------------------------------- */
+    .bottom-hud {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 75px;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 36px;
+      pointer-events: auto;
+      background: linear-gradient(0deg, rgba(3, 6, 15, 0.95) 0%, rgba(3, 6, 15, 0) 100%);
+    }
+
+    .progress-track-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .progress-fill-bar {
+      height: 100%;
+      width: 8.33%;
+      background: linear-gradient(90deg, var(--purple-electric), var(--cyan-bright));
+      box-shadow: 0 0 10px var(--cyan-bright);
+      transition: width 0.4s var(--ease-smooth);
+    }
+
+    .nav-button-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .nav-arrow-btn {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: var(--bg-panel);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+      border: 1px solid var(--border-subtle);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.25s var(--ease-smooth);
+    }
+
+    .nav-arrow-btn:hover:not(:disabled) {
+      border-color: var(--border-highlight);
+      background: rgba(0, 240, 255, 0.15);
+      box-shadow: 0 0 18px rgba(0, 240, 255, 0.3);
+      transform: scale(1.04);
+    }
+
+    .nav-arrow-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    .nav-arrow-btn svg {
+      width: 18px;
+      height: 18px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2.5;
+    }
+
+    .slide-dots-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .slide-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.2);
+      cursor: pointer;
+      transition: all 0.3s var(--ease-smooth);
+    }
+
+    .slide-dot.active {
+      width: 26px;
+      background: var(--cyan-bright);
+      box-shadow: 0 0 10px var(--cyan-bright);
+    }
+
+    .slide-counter-display {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 2px;
+    }
+
+    .slide-counter-display .current {
+      color: #fff;
+      font-weight: 700;
+    }
+
+    /* -------------------------------------------------------------
+       WELCOME CINEMATIC OVERLAY
+       ------------------------------------------------------------- */
+    #welcome-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      background: radial-gradient(circle at 50% 40%, rgba(13, 20, 38, 0.94) 0%, rgba(2, 4, 10, 0.98) 100%);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
+      transition: opacity 0.8s var(--ease-smooth), visibility 0.8s;
+    }
+
+    #welcome-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .welcome-emblem {
+      width: 84px;
+      height: 84px;
+      border: 1px solid var(--border-highlight);
+      border-radius: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 240, 255, 0.08);
+      box-shadow: 0 0 40px rgba(0, 240, 255, 0.35);
+      margin-bottom: 24px;
+      animation: floatSlow 4s ease-in-out infinite;
+    }
+
+    @keyframes floatSlow {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .welcome-emblem svg {
+      width: 44px;
+      height: 44px;
+      stroke: var(--cyan-bright);
+      fill: none;
+      stroke-width: 1.5;
+    }
+
+    .welcome-title {
+      font-family: var(--font-display);
+      font-size: clamp(38px, 5.2vw, 76px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.05;
+      color: #fff;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .welcome-title span {
+      background: linear-gradient(135deg, #fff 30%, var(--cyan-bright) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .welcome-subtitle {
+      font-family: var(--font-body);
+      font-size: clamp(15px, 1.4vw, 20px);
+      font-weight: 300;
+      color: #94a3b8;
+      max-width: 820px;
+      margin-bottom: 34px;
+      line-height: 1.55;
+    }
+
+    .btn-start-presentation {
+      background: linear-gradient(135deg, var(--cyan-bright) 0%, #0099ff 100%);
+      color: #020617;
+      border: none;
+      padding: 16px 44px;
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      border-radius: 40px;
+      cursor: pointer;
+      box-shadow: 0 0 35px rgba(0, 240, 255, 0.45);
+      transition: all 0.3s var(--ease-smooth);
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .btn-start-presentation:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 0 50px rgba(0, 240, 255, 0.7);
+    }
+
+    .keyboard-legend {
+      margin-top: 32px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .key-badge {
+      padding: 3px 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+      color: #cbd5e1;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    /* Quick Jump Drawer & Notes Modal */
+    #drawer-jump {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 360px;
+      height: 100%;
+      z-index: 50;
+      background: rgba(8, 12, 24, 0.95);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border-left: 1px solid var(--border-subtle);
+      padding: 30px 24px;
+      transform: translateX(100%);
+      transition: transform 0.4s var(--ease-smooth);
+      display: flex;
+      flex-direction: column;
+      pointer-events: auto;
+    }
+
+    #drawer-jump.open { transform: translateX(0); }
+
+    .drawer-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .drawer-title {
+      font-family: var(--font-display);
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #fff;
+    }
+
+    .drawer-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    .drawer-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .drawer-item {
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transition: all 0.2s;
+    }
+
+    .drawer-item:hover, .drawer-item.active {
+      background: rgba(0, 240, 255, 0.08);
+      border-color: var(--border-highlight);
+    }
+
+    .drawer-num {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--cyan-bright);
+    }
+
+    .drawer-name {
+      font-size: 12.5px;
+      font-weight: 500;
+      color: #e2e8f0;
+    }
+
+    #notes-modal {
+      position: absolute;
+      bottom: 85px;
+      left: 36px;
+      width: 480px;
+      background: var(--bg-panel);
+      backdrop-filter: var(--blur-glass);
+      -webkit-backdrop-filter: var(--blur-glass);
+      border: 1px solid var(--border-highlight);
+      border-radius: 16px;
+      padding: 22px;
+      z-index: 40;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(12px);
+      transition: all 0.3s var(--ease-smooth);
+      pointer-events: auto;
+    }
+
+    #notes-modal.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+
+    .notes-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .notes-title {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--cyan-bright);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .notes-content {
+      font-size: 12.5px;
+      line-height: 1.55;
+      color: #cbd5e1;
+    }
+
+    .notes-tag-disclaimer {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--amber-warm);
+      font-style: italic;
+    }
+
+    @media (max-width: 1024px) {
+      .slide-stage { padding: 75px 20px 85px 20px; }
+      .slide { inset: 75px 20px 85px 20px; }
+      .reference-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ambient Visual Canvases -->
+  <div id="webgl-canvas-container"></div>
+  <div class="ambient-grid"></div>
+  <div class="cinema-vignette"></div>
+
+  <!-- PERSISTENT TOP HUD -->
+  <header class="top-hud">
+    <div class="brand-group">
+      <div class="brand-symbol">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 22 20 2 20"/></svg>
+      </div>
+      <div class="brand-titles">
+        <span class="brand-main">TASHKENT <span>2077</span></span>
+        <span class="brand-sub">12 Districts • 120 Trapezoids • Subterranean Maglev</span>
+      </div>
+    </div>
+
+    <div class="header-center-info">
+      <div class="live-dot"></div>
+      <span class="slide-badge-title" id="hud-slide-title">01 / The Vision</span>
+    </div>
+
+    <div class="top-actions">
+      <button class="hud-btn" id="btn-audio-toggle" title="Synthesized Ambiance Audio">
+        <svg id="audio-icon-svg" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        <span id="audio-label-text">SFX: ON</span>
+      </button>
+
+      <button class="hud-btn" id="btn-notes-toggle" title="Speaker Technical Notes">
+        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>Notes</span>
+      </button>
+
+      <button class="hud-btn" id="btn-menu-toggle" title="Jump to Slide">
+        <svg viewBox="0 0 24 24"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        <span>Index</span>
+      </button>
+
+      <button class="hud-btn" id="btn-fullscreen-toggle" title="Toggle Fullscreen">
+        <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- PRESENTATION VIEWPORT -->
+  <main id="presentation-viewport">
+    <div class="slide-stage">
+
+      <!-- ==========================================
+           SLIDE 01: THE VISION
+           ========================================== -->
+      <section class="slide active" id="slide-0" data-title="01 / The Vision">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Master Keynote • Metropolitan Initiative 2077</div>
+          <h1 class="slide-title">TASHKENT <span class="glow-cyan">2077</span></h1>
+          <p class="slide-subtitle">Engineering the resilient, high-density city of tomorrow.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <div class="glass-card hero-stat-card" style="grid-column: span 3;">
+            <div class="stat-number-hero" id="counter-pop">0<span class="unit">M</span></div>
+            <div class="stat-label-hero">Design Population (12 Districts)</div>
+          </div>
+
+          <div class="glass-card hero-stat-card" style="grid-column: span 3; border-left-color: var(--purple-electric); background: linear-gradient(135deg, rgba(168, 85, 247, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);">
+            <div class="stat-number-hero" id="counter-megastruct">0<span class="unit">Megastructures</span></div>
+            <div class="stat-label-hero">120 Wide Frustums (10 / District)</div>
+          </div>
+
+          <div class="glass-card hero-stat-card" style="grid-column: span 3; border-left-color: var(--emerald-neon); background: linear-gradient(135deg, rgba(16, 185, 129, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);">
+            <div class="stat-number-hero" id="counter-footprint">0<span class="unit">km²</span></div>
+            <div class="stat-label-hero">Consolidated Urban Footprint (-90%)</div>
+          </div>
+
+          <div class="glass-card hero-stat-card" style="grid-column: span 3; border-left-color: var(--wheat-gold); background: linear-gradient(135deg, rgba(250, 204, 21, 0.08) 0%, rgba(15, 23, 42, 0.65) 100%);">
+            <div class="stat-number-hero" id="counter-budget">0<span class="unit">T</span></div>
+            <div class="stat-label-hero">Hypothetical Investment Pool</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 02: URBAN PARADIGM SHIFT
+           ========================================== -->
+      <section class="slide" id="slide-1" data-title="02 / Urban Paradigm Shift">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Geographical & Structural Imperatives</div>
+          <h1 class="slide-title">COMPACT VERTICALISM <span class="glow-cyan">VS CHAOTIC SPRAWL</span></h1>
+          <p class="slide-subtitle">Protecting Central Asian agricultural soils while eliminating traffic congestion.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <div class="glass-card cs-card" style="grid-column: span 6;">
+            <span class="cs-tag challenge">The Sprawl Trajectory (Baseline 37.5M)</span>
+            <div class="metric-row">
+              <span class="metric-name">Land Footprint Devoured</span>
+              <span class="metric-val" style="color: #f87171;">~1,850 km² Arable Land Lost</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Seismic Hazard Exposure</span>
+              <span class="metric-val" style="color: #f87171;">Unreinforced Low-Rise Masonry Shear Failure</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Daily Commute & Gridlock</span>
+              <span class="metric-val">> 70 Minutes Trapped on Surface Highways</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Thermal & Water Inefficiency</span>
+              <span class="metric-val">> 45% Distribution & Transmission Loss</span>
+            </div>
+          </div>
+
+          <div class="glass-card cs-card" style="grid-column: span 6; border-color: var(--border-highlight); background: linear-gradient(145deg, rgba(0, 240, 255, 0.07), rgba(15, 23, 42, 0.8));">
+            <span class="cs-tag solution">The Tashkent 2077 Solution</span>
+            <div class="metric-row">
+              <span class="metric-name">Consolidated Urban Footprint</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">180 km² (-90% Footprint Saved)</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Seismic Base-Isolation</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">-78% Lateral Ground Sway Dissipation</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Transit Time (Any 2 Districts)</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">< 12 Mins via Subterranean Vacuum Loops</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Protected Agricultural Ring</span>
+              <span class="metric-val" style="color: var(--wheat-gold);">Mixed Regional Agro-Belt Preserved</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 03: TRAPEZOID MORPHOLOGY & BASE AREA
+           ========================================== -->
+      <section class="slide" id="slide-2" data-title="03 / Trapezoid Morphology & Base Area">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Structural Physics & Dimensional Geometry</div>
+          <h1 class="slide-title">THE WIDE TRAPEZOID: <span class="glow-purple">16 TO 36 HECTARES</span></h1>
+          <p class="slide-subtitle">Mathematical calculations of the 4-sided frustum foundations and interior solar atriums.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <div class="glass-card" style="grid-column: span 7;">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan-bright); text-transform: uppercase; margin-bottom: 8px;">Frustum Geometry & Footprint Calculations</div>
+            <div class="metric-row">
+              <span class="metric-name">Base Side Width (w_base)</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">400 – 600 Meters per side</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Base Footprint Area (A_base = w^2)</span>
+              <span class="metric-val" style="color: #fff; font-size: 15px;">160,000 m² to 360,000 m² (16 – 36 Hectares)</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Upper Crown Width (w_top)</span>
+              <span class="metric-val">250 – 400 Meters (62,500 – 160,000 m² roof deck)</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Structural Height ($H$) & Tiers</span>
+              <span class="metric-val">250 – 350 Meters (60 – 85 Floors)</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Center of Gravity Height (H_cg)</span>
+              <span class="metric-val" style="color: var(--emerald-neon);">H_cg = 0.38 × H (Low Center of Mass Stability)</span>
+            </div>
+          </div>
+
+          <div class="glass-card" style="grid-column: span 12; padding: 14px 18px; margin-top: 12px;">
+            <div style="font-family:var(--font-mono);font-size:10px;color:var(--cyan-bright);letter-spacing:1.4px;margin-bottom:8px;text-transform:uppercase;">Tower scale reference — conceptual dimensions</div>
+            <div style="display:flex;align-items:center;gap:22px;flex-wrap:wrap;">
+              <svg viewBox="0 0 520 150" style="width:min(520px,100%);height:auto;max-height:150px" role="img" aria-label="Trapezoid tower dimension diagram">
+                <path d="M190 18 L330 18 L390 132 L130 132 Z" fill="rgba(0,240,255,.12)" stroke="#00f0ff" stroke-width="2"/>
+                <path d="M190 18 L190 132 M330 18 L330 132" stroke="rgba(255,255,255,.25)" stroke-dasharray="4 4"/>
+                <path d="M410 18 L410 132 M403 18 L417 18 M403 132 L417 132" stroke="#a855f7" stroke-width="2"/>
+                <text x="425" y="78" fill="#c4b5fd" font-size="12">250–350 m</text>
+                <path d="M130 141 L390 141 M130 136 L130 146 M390 136 L390 146" stroke="#00f0ff" stroke-width="2"/>
+                <text x="260" y="126" text-anchor="middle" fill="#e2e8f0" font-size="11">400–600 m base width</text>
+                <text x="260" y="12" text-anchor="middle" fill="#c4b5fd" font-size="10">250–400 m crown</text>
+              </svg>
+              <div style="font-size:12px;line-height:1.7;color:#cbd5e1;flex:1;min-width:220px;">
+                <b style="color:#fff">Visual proportions:</b> 250–350 m tall, 400–600 m base width, 250–400 m upper width. These are conceptual project dimensions, not a completed structural design.
+              </div>
+            </div>
+          </div>
+          <div class="glass-card" style="grid-column: span 5;">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--purple-electric); text-transform: uppercase; margin-bottom: 8px;">Internal Solar & Diagrid Systems</div>
+            <div class="metric-row">
+              <span class="metric-name">Light Penetration Shafts</span>
+              <span class="metric-val">Quad-Quadrant Solar Atriums</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Wind Shear Dissipation</span>
+              <span class="metric-val">-64% Vortex Shedding vs Rectangles</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Perimeter Diagrid Trusses</span>
+              <span class="metric-val">Carbon-Titanium Hexagonal Lattice</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Average Building Capacity</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">~250,000 – 368,000 Residents</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 04: EVERYDAY SCHOOLS, CLINICS & 5-MIN CITY
+           ========================================== -->
+      <section class="slide" id="slide-3" data-title="04 / Everyday Schools & Clinics">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Civic Integration • The 5-Minute Vertical City</div>
+          <h1 class="slide-title">EVERYDAY SCHOOLS & CLINICS: <span class="glow-emerald">IN-TOWER LIVING</span></h1>
+          <p class="slide-subtitle">How normal citizens live, learn, and access healthcare without needing a car or long commutes.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <div class="glass-card cs-card" style="grid-column: span 6;">
+            <span class="cs-tag greenpath">Everyday Vertical Living (Tiers 01 – 85)</span>
+            <div class="metric-row">
+              <span class="metric-name">Tiers 15 – 39: Child Daycare & Primary Schools</span>
+              <span class="metric-val" style="color: var(--emerald-neon);">In-Tower Atrium Classrooms</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Tiers 40 – 59: Routine Family Polyclinics</span>
+              <span class="metric-val">Dental, Pediatric, Urgent Care Nodes</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Tiers 60 – 85: Terraced Sky-Parks & Green Gyms</span>
+              <span class="metric-val">Recreational Biophilic Decks</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Daily Commute for Everyday Needs</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">< 3 Minutes via Maglev Elevators</span>
+            </div>
+          </div>
+
+          <div class="glass-card cs-card" style="grid-column: span 6; border-color: var(--border-purple); background: linear-gradient(145deg, rgba(168, 85, 247, 0.08), rgba(15, 23, 42, 0.8));">
+            <span class="cs-tag solution">Specialized Regional Infrastructure (20% Mid-Rise Ring)</span>
+            <div class="metric-row">
+              <span class="metric-name">Yunusobod & Uchtepa Medical Cores</span>
+              <span class="metric-val" style="color: var(--purple-electric);">Regional Surgical Hospital & Pediatric Center</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Chilonzor Polytechnic Campus</span>
+              <span class="metric-val">Higher Engineering & Robotics Labs</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Mirzo Ulug‘bek Aerospace Academy</span>
+              <span class="metric-val">High-Altitude Astronomical Research</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Shayxontohur University Quarter</span>
+              <span class="metric-val">University of World Economy & Media</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 05: ZERO-CAR MOBILITY & 4-TIER TRANSIT
+           ========================================== -->
+      <section class="slide" id="slide-4" data-title="05 / Zero-Car Subterranean Transit">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Surface Pedestrianization & Multi-Tier Maglev</div>
+          <h1 class="slide-title">ZERO SURFACE CARS: <span class="glow-cyan">THE 4-TIER TRANSIT</span></h1>
+          <p class="slide-subtitle">100% elimination of surface traffic jams, diesel exhaust, and freight trucks.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <!-- Metro Cutaway Diagram -->
+          <div class="glass-card" style="grid-column: span 7; height: 350px;">
+            <div class="metro-cross-section">
+              <div style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan-bright); text-transform: uppercase;">Multi-Tier Subterranean Cross-Section</div>
+              
+              <div class="tier-diagram-row" style="border-left-color: #38bdf8;">
+                <span class="tier-depth-badge">0m</span>
+                <div class="tier-content-box">
+                  <div class="tier-title-label">Surface Level: 100% Pedestrian, Micromobility & Glass Portals</div>
+                  <div class="tier-desc-label">Green Path biophilic ribbon, e-scooters, tree-lined walking plazas. Zero cars.</div>
+                </div>
+              </div>
+
+              <div class="tier-diagram-row" style="border-left-color: var(--cyan-bright);">
+                <span class="tier-depth-badge">-10m</span>
+                <div class="tier-content-box">
+                  <div class="tier-title-label">Concourse Level: Automated Ticketing, Retail Nodes & Walkways</div>
+                  <div class="tier-desc-label">Direct escalator connections leading down from the glass surface portals.</div>
+                </div>
+              </div>
+
+              <div class="tier-diagram-row" style="border-left-color: var(--purple-electric);">
+                <span class="tier-depth-badge">-24m</span>
+                <div class="tier-content-box">
+                  <div class="tier-title-label">High-Speed Vacuum Maglev Lines (160 – 220 km/h)</div>
+                  <div class="tier-desc-label">12 radial low-pressure tubes linking all district underground stations in 90s loops.</div>
+                </div>
+              </div>
+
+              <div class="tier-diagram-row" style="border-left-color: var(--emerald-neon);">
+                <span class="tier-depth-badge">-45m</span>
+                <div class="tier-content-box">
+                  <div class="tier-title-label">Autonomous Deep Freight & Supply Logistics Capsules</div>
+                  <div class="tier-desc-label">Heavy freight delivery completely isolated from human transit. Zero surface trucks.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="glass-card" style="grid-column: span 5;">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan-bright); text-transform: uppercase; margin-bottom: 8px;">Network Performance Benchmarks</div>
+            <div class="metric-row">
+              <span class="metric-name">Surface Congestion Reduction</span>
+              <span class="metric-val" style="color: var(--emerald-neon);">100% Zero Surface Traffic</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Inter-District Travel Time</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">< 8 Minutes</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Maglev Loop Headway</span>
+              <span class="metric-val">90 Seconds Frequency</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Underground Freight Volume</span>
+              <span class="metric-val">65,000 Tons Automated Daily</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 06: EARTHQUAKE RESILIENCE & SEISMIC SHIELD
+           ========================================== -->
+      <section class="slide" id="slide-5" data-title="06 / Earthquake Resilience">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Geotechnical & Seismic Defense</div>
+          <h1 class="slide-title">ENGINEERED FOR <span class="glow-cyan">RESILIENCE</span></h1>
+          <p class="slide-subtitle">Live real-time physics: Lead-rubber bearings & fluid viscous dampers dissipating 78% of sway.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <div class="interactive-canvas-panel" style="grid-column: span 8;">
+            <div class="canvas-hud-overlay">
+              <button class="canvas-hud-pill active" id="btn-trigger-quake">Simulate Mw 7.5 Quake</button>
+              <button class="canvas-hud-pill" id="btn-reset-quake">Reset Inertia</button>
+              <span style="font-family: var(--font-mono); font-size: 11px; color: #94a3b8; display: flex; align-items: center; margin-left: 10px;" id="quake-status-label">Status: Soil Ambient</span>
+            </div>
+            <canvas id="seismic-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+          </div>
+
+          <div class="glass-card" style="grid-column: span 4;">
+            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--cyan-bright); text-transform: uppercase; margin-bottom: 8px;">Quadruple Seismic Shield</div>
+            <div class="metric-row">
+              <span class="metric-name">Lead-Rubber Elastomeric Bearings</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">-78% Ground Sway</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Viscous Liquid Dampers</span>
+              <span class="metric-val">Subterranean Bedrock</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Dynamic Expansion Joints</span>
+              <span class="metric-val">Non-Colliding Quadrants</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Bedrock Anchor Piling Depth</span>
+              <span class="metric-val">68 Meters Solid Rock</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 07: RESILIENT POWER GRID & INDUSTRIAL ENERGY COMPLEX
+           ========================================== -->
+      <section class="slide" id="slide-6" data-title="07 / Central Energy Station & Grid">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Baseload Generation & High-Voltage Grid</div>
+          <h1 class="slide-title">CENTRAL ENERGY COMPLEX & <span class="glow-purple">NUCLEAR REACTORS</span></h1>
+          <p class="slide-subtitle">A conceptual Generation-IV small modular reactor campus with turbine halls, cooling systems, and a high-voltage grid.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <div class="glass-card cs-card" style="grid-column: span 6;">
+            <span class="cs-tag challenge">Nuclear Fission Energy Campus (North Agro-Belt: X: 0, Z: -320)</span>
+            <p style="font-size: 12px; line-height: 1.5; color: #cbd5e1;">
+              Conceptual nuclear fission campus supplying firm low-carbon electricity alongside solar generation and grid-scale storage. Final capacity and reactor count require a real demand and safety assessment.
+            </p>
+            <div class="metric-row">
+              <span class="metric-name">Reactor Containment Buildings</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">3 reinforced reactor buildings with containment domes</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Hyperbolic Cooling Towers</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">2 hyperbolic cooling towers for heat rejection</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">High-Voltage Substation</span>
+              <span class="metric-val">Transformers, Bushings & Steel Pylons</span>
+            </div>
+          </div>
+
+          <div class="glass-card cs-card" style="grid-column: span 6; border-color: var(--border-highlight); background: linear-gradient(145deg, rgba(168, 85, 247, 0.08), rgba(15, 23, 42, 0.8));">
+            <span class="cs-tag solution">The 2077 Zero-Carbon Matrix</span>
+            <div class="metric-row">
+              <span class="metric-name">Industrial SMR Nuclear Complex</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">8 × 300 MWe Gen-IV (Passive Safety)</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Building-Integrated Solar (BIPV)</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">22.4 GW Peak Perovskite Glazing</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Cryogenic DC Microgrid</span>
+              <span class="metric-val">Superconducting Distribution Ring</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Grid-Scale Cryo-BESS</span>
+              <span class="metric-val" style="color: var(--emerald-neon);">48-Hour Deep Reserve Storage</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 08: GOLDEN WHEAT AGRO-BELT & FOOD SOVEREIGNTY
+           ========================================== -->
+      <section class="slide" id="slide-7" data-title="08 / Golden Wheat Agro-Belt">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Massive Golden Grain Ring & Atrium Agronomy</div>
+          <h1 class="slide-title">FEEDING <span class="glow-wheat">THIRTY-SEVEN MILLION</span></h1>
+          <p class="slide-subtitle">A mixed agricultural belt of crop plots, greenhouses, orchards, and irrigation corridors.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <div class="glass-card cs-card" style="grid-column: span 6;">
+            <span class="cs-tag challenge">The Food Security Challenge</span>
+            <p style="font-size: 12px; line-height: 1.5; color: #cbd5e1;">
+              Reducing food-system pressure for a 37.5-million-person concept city through regional farms, protected growing, efficient irrigation, and resilient supply chains. Full self-sufficiency is not assumed.
+            </p>
+            <div class="metric-row">
+              <span class="metric-name">Daily Grain & Produce Demand</span>
+              <span class="metric-val" style="color: #f87171;">~75,000–90,000 tonnes food/day*</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Historical Water Threat</span>
+              <span class="metric-val">Severe Aral Sea Basin Water Depletion</span>
+            </div>
+          </div>
+
+          <div class="glass-card cs-card" style="grid-column: span 6; border-color: var(--border-wheat); background: linear-gradient(145deg, rgba(250, 204, 21, 0.08), rgba(15, 23, 42, 0.8));">
+            <span class="cs-tag wheat">The 2077 Golden Agro-Belt</span>
+            <div class="metric-row">
+              <span class="metric-name">Mixed Regional Agro-Belt</span>
+              <span class="metric-val" style="color: var(--wheat-gold);">Outer plots beyond the urban edge</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Agrarian Geodesic Bio-Domes</span>
+              <span class="metric-val" style="color: var(--emerald-neon);">16 Grounded Greenhouse Modules</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Atrium Vertical Hydroponics</span>
+              <span class="metric-val">Internal Sunny Terraced Cascades</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Land-Use Mix</span>
+              <span class="metric-val">Wheat, orchards, vegetables, greenhouses & paths</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Subterranean Cold-Chain Tubes</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">< 15 Mins Farm to District Market</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 09: CIRCULAR WATER & CENTRAL GREEN PARK
+           ========================================== -->
+      <section class="slide" id="slide-8" data-title="09 / Water, Climate & Central Park">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Circular Hydrology & The Central Bio-Park</div>
+          <h1 class="slide-title">CIRCULAR WATER & <span class="glow-emerald">CENTRAL GREEN PARK</span></h1>
+          <p class="slide-subtitle">94% wastewater recovery, dedicated Water Purity Tower, and a 90-unit lush park with a living river.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <div class="glass-card" style="grid-column: span 4;">
+            <span class="cs-tag solution">Hydro-Purity Tower 2077</span>
+            <div class="metric-row">
+              <span class="metric-name">Membrane Bioreactors (MBR)</span>
+              <span class="metric-val" style="color: var(--cyan-bright);">94% Wastewater Recovery</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Dedicated Purification Tower</span>
+              <span class="metric-val">Nanofiltration Inter-District Node</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Dual-Pipe Infrastructure</span>
+              <span class="metric-val">Separate Drinking / Graywater</span>
+            </div>
+          </div>
+
+          <div class="glass-card" style="grid-column: span 4;">
+            <span class="cs-tag solution">District Heating & Cooling</span>
+            <div class="metric-row">
+              <span class="metric-name">High-Performance Envelopes</span>
+              <span class="metric-val">Self-Shading Terraced Facades</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Aquifer Thermal Storage</span>
+              <span class="metric-val">Deep Seasonal Heat/Cold Storage</span>
+            </div>
+            <div class="metric-row">
+              <span class="metric-name">Smart Atrium Ventilation</span>
+              <span class="metric-val">Convective Summer Cooling</span>
+            </div>
+          </div>
+
+          <div class="glass-card" style="grid-column: span 4; border-color: var(--border-emerald); background: linear-gradient(135deg, rgba(16, 185, 129, 0.09) 0%, rgba(15, 23, 42, 0.8) 100%);">
+            <span class="cs-tag greenpath">MASSIVE CENTRAL GREEN PARK</span>
+            <p style="font-size: 11.5px; line-height: 1.5; color: #cbd5e1; margin-top: 8px;">
+              Replaces conventional central high-rise spires with a sprawling 65-radius core bio-oasis. Features a meandering natural river, arched footbridges, lush flower gardens, and tree canopies connecting directly to the citywide Green Path ribbon.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 10: INTERACTIVE 3D CITY & SUBTERRANEAN EXPLORER
+           ========================================== -->
+      <section class="slide" id="slide-9" data-title="10 / Interactive 3D & Metro Explorer">
+        <div class="explorer-hud-container">
+          <div class="slide-heading-block">
+            <div class="slide-meta-tag">Interactive Three.js Metropolis • Subterranean Navigation</div>
+            <h1 class="slide-title">EXPLORE <span class="glow-cyan">TASHKENT 2077</span></h1>
+            <p class="slide-subtitle">Use camera presets, click any district to navigate, or toggle Ground X-Ray to explore underground.</p>
+          </div>
+
+          <!-- DISTRICT REDIRECTION BUTTONS -->
+          <div class="district-redirect-bar" id="district-nav-bar"></div>
+
+          <div class="explorer-controls-panel">
+            <button class="hud-btn" onclick="setCameraPreset('orbit')">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              <span>Orbit View</span>
+            </button>
+            <button class="hud-btn" onclick="setCameraPreset('centralPark')">
+              <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+              <span>Central Green Park & River</span>
+            </button>
+            <button class="hud-btn" onclick="setCameraPreset('undergroundStation')">
+              <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+              <span>Underground Station (-24m)</span>
+            </button>
+            <button class="hud-btn" id="btn-lighting-toggle" onclick="toggleDayNightLighting()" title="Switch between daylight and night lighting">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/></svg>
+              <span id="btn-lighting-label">Daylight Mode</span>
+            </button>
+            <button class="hud-btn" onclick="setCameraPreset('thermalPowerPlant')">
+              <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Industrial Power Plant</span>
+            </button>
+          <!-- SUBTERRANEAN X-RAY & TRAIN CONTROL BAR (DRAGGABLE & MOVABLE) -->
+          <div class="underground-control-bar" id="underground-hud">
+            <div class="drag-grip-handle" id="underground-hud-grip" title="Drag telemetry bar anywhere">
+              <svg viewBox="0 0 24 24"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
+            </div>
+            <div class="xray-slider-group">
+              <span>Ground X-Ray:</span>
+              <input type="range" id="xray-opacity-slider" min="0" max="100" value="100" oninput="setXRayOpacity(this.value)">
+              <span id="xray-val-label">100%</span>
+            </div>
+            <button class="hud-btn" id="btn-toggle-trains" onclick="toggleTrainAnimation()" style="height: 32px; padding: 0 10px;">
+              <span id="train-btn-label">Pause Maglev</span>
+            </button>
+            <button class="hud-btn" onclick="setCameraPreset('orbit')" style="height: 32px; padding: 0 10px;">
+              <span>Reset Camera</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Building / District Inspection Floating Card (DRAGGABLE & MINIMIZABLE) -->
+        <div class="explorer-building-card" id="explorer-card">
+          <div class="card-drag-header" id="explorer-card-header" title="Drag to reposition card">
+            <div class="card-drag-title">
+              <svg class="card-drag-grip-icon" viewBox="0 0 24 24"><circle cx="9" cy="5" r="1.5"/><circle cx="15" cy="5" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="19" r="1.5"/><circle cx="15" cy="19" r="1.5"/></svg>
+              <span class="building-badge" id="card-badge">DISTRICT YUNUSOBOD • M01</span>
+            </div>
+            <div class="card-window-controls">
+              <button class="card-ctrl-btn" id="btn-minimize-card" title="Minimize / Expand Card" onclick="toggleCardMinimize()">—</button>
+              <button class="card-ctrl-btn" id="btn-close-card" title="Close Window" onclick="closeInspectionCard()">✕</button>
+            </div>
+          </div>
+          <div class="card-collapsible-body" id="explorer-card-body">
+            <div class="building-name" id="card-name">Yunusobod Megastructure 01</div>
+            <p id="card-desc" style="font-size: 11.5px; color: #cbd5e1; line-height: 1.45;">
+              Wide trapezoidal community complex with internal solar atriums and terraced gardens.
+            </p>
+            <div class="building-stat-grid">
+              <div class="b-stat">
+                <div class="b-stat-label">Footprint Base Area</div>
+                <div class="b-stat-value" id="card-base-area">~270,000 m² (27 ha)</div>
+              </div>
+              <div class="b-stat">
+                <div class="b-stat-label">Building Capacity (80%)</div>
+                <div class="b-stat-value" id="card-mega-cap">~368,000</div>
+              </div>
+              <div class="b-stat">
+                <div class="b-stat-label">Height / Base Width</div>
+                <div class="b-stat-value" id="card-dimensions">320m / 520m</div>
+              </div>
+              <div class="b-stat">
+                <div class="b-stat-label">Total District Pop</div>
+                <div class="b-stat-value" id="card-dist-pop">4.6M</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 11: DEMOGRAPHIC & CIVIC LEDGER
+           ========================================== -->
+      <section class="slide" id="slide-10" data-title="11 / Demographic & Civic Ledger">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Comprehensive Metropolitan Census Matrix</div>
+          <h1 class="slide-title">DEMOGRAPHIC & <span class="glow-cyan">CIVIC LEDGER</span></h1>
+          <p class="slide-subtitle">Population, megastructure allocation, elementary school slots, and hospital capacity across all 12 districts.</p>
+        </div>
+
+        <div class="slide-body-grid">
+          <div class="glass-card" style="grid-column: span 12; padding: 16px;">
+            <div class="ledger-table-wrap">
+              <table class="ledger-table">
+                <thead>
+                  <tr>
+                    <th>District</th>
+                    <th>Total Pop</th>
+                    <th>10 Megastructures (80%)</th>
+                    <th>Mid-Rise Civic (20%)</th>
+                    <th>Base Width & Area</th>
+                    <th>Elementary Schools</th>
+                    <th>Healthcare Core</th>
+                  </tr>
+                </thead>
+                <tbody id="ledger-table-body">
+                  <!-- Populated dynamically via JS -->
+                </tbody>
+              </table>
+            </div>
+            <div style="margin-top: 8px; font-size: 10.5px; color: var(--amber-warm); font-style: italic;">
+              * Conceptual engineering ledger: 80% residents live in the 10 wide trapezoids; 20% reside in surrounding mid-rise research and civic hubs.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ==========================================
+           SLIDE 12: SCIENTIFIC REFERENCES & BENCHMARKS
+           ========================================== -->
+      <section class="slide" id="slide-11" data-title="12 / Scientific References">
+        <div class="slide-heading-block">
+          <div class="slide-meta-tag">Multilateral Standards & Academic Publications</div>
+          <h1 class="slide-title">RESEARCH & <span class="glow-cyan">REFERENCES</span></h1>
+          <p class="slide-subtitle">Scientific foundations and structural engineering benchmarks.</p>
+        </div>
+
+        <div class="reference-grid">
+          <a class="ref-card" href="https://www.iaea.org/topics/small-modular-reactors" target="_blank" rel="noopener">
+            <div>
+              <div class="ref-source">IAEA • Nuclear Safety</div>
+              <div class="ref-title">Small Modular Reactors (SMRs) Safety & Siting</div>
+              <div class="ref-desc">International standards on passive convective heat removal and underground containment.</div>
+            </div>
+            <div class="ref-link-action"><span>iaea.org</span> <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          </a>
+
+          <a class="ref-card" href="https://www.usgs.gov/programs/earthquake-hazards" target="_blank" rel="noopener">
+            <div>
+              <div class="ref-source">USGS • Geophysics</div>
+              <div class="ref-title">Seismic Hazards & Spectral Acceleration</div>
+              <div class="ref-desc">Methodologies for active fault mapping, seismic attenuation, and soil-structure resonance.</div>
+            </div>
+            <div class="ref-link-action"><span>usgs.gov</span> <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          </a>
+
+          <a class="ref-card" href="https://unhabitat.org/world-cities-report" target="_blank" rel="noopener">
+            <div>
+              <div class="ref-source">UN-HABITAT • Urban Planning</div>
+              <div class="ref-title">World Cities Report: Compact Urbanism</div>
+              <div class="ref-desc">Empirical proof that high-density compact footprints preserve surrounding agriculture.</div>
+            </div>
+            <div class="ref-link-action"><span>unhabitat.org</span> <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          </a>
+
+          <a class="ref-card" href="https://www.uitp.org/topics/urban-rail/" target="_blank" rel="noopener">
+            <div>
+              <div class="ref-source">UITP • Mass Transit</div>
+              <div class="ref-title">Automated Metro Loops & Multi-Hub Rails</div>
+              <div class="ref-desc">Global practices on multi-tier subterranean interchange hubs preventing passenger bottlenecks.</div>
+            </div>
+            <div class="ref-link-action"><span>uitp.org</span> <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          </a>
+
+          <a class="ref-card" href="https://www.fao.org/urban-agriculture/" target="_blank" rel="noopener">
+            <div>
+              <div class="ref-source">FAO • Food Security</div>
+              <div class="ref-title">Controlled Environment Agriculture & Buffers</div>
+              <div class="ref-desc">Framework for peri-urban agricultural belts, closed-loop hydroponics, and regional sovereignty.</div>
+            </div>
+            <div class="ref-link-action"><span>fao.org</span> <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          </a>
+
+          <a class="ref-card" href="https://www.iea.org/reports/electricity-grids-and-secure-energy-transitions" target="_blank" rel="noopener">
+            <div>
+              <div class="ref-source">IEA • Clean Energy</div>
+              <div class="ref-title">Electricity Grids & Secure Energy Transitions</div>
+              <div class="ref-desc">Benchmarks on microgrid redundancy, superconducting rings, and BIPV facade integration.</div>
+            </div>
+            <div class="ref-link-action"><span>iea.org</span> <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          </a>
+
+          <a class="ref-card" href="https://www.eeri.org" target="_blank" rel="noopener">
+            <div>
+              <div class="ref-source">EERI / JSCE • Structural</div>
+              <div class="ref-title">Seismic Base Isolation & Viscous Dampers</div>
+              <div class="ref-desc">Standards for elastomeric lead-rubber bearings and dynamic displacement joints.</div>
+            </div>
+            <div class="ref-link-action"><span>eeri.org</span> <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          </a>
+
+          <a class="ref-card" href="https://www.ashrae.org" target="_blank" rel="noopener">
+            <div>
+              <div class="ref-source">ASHRAE / UNEP • HVAC</div>
+              <div class="ref-title">District Heating & Cooling (DHC) Standards</div>
+              <div class="ref-desc">Standards on aquifer thermal energy storage (ATES) and biophilic microclimates.</div>
+            </div>
+            <div class="ref-link-action"><span>ashrae.org</span> <svg viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></div>
+          </a>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- BOTTOM PRESENTATION CONTROLS -->
+  <footer class="bottom-hud">
+    <div class="progress-track-wrapper">
+      <div class="progress-fill-bar" id="progress-bar"></div>
+    </div>
+
+    <div class="nav-button-group">
+      <button class="nav-arrow-btn" id="btn-prev-slide" title="Previous Slide (← / Up)">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <button class="nav-arrow-btn" id="btn-next-slide" title="Next Slide (→ / Space / Down)">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+
+    <div class="slide-dots-indicator" id="dots-container"></div>
+
+    <div class="slide-counter-display">
+      <span class="current" id="counter-current">01</span> / <span id="counter-total">12</span>
+    </div>
+  </footer>
+
+  <!-- WELCOME MODAL -->
+  <div id="welcome-screen">
+    <div class="welcome-emblem">
+      <svg viewBox="0 0 24 24"><polygon points="12 2 22 20 2 20"/></svg>
+    </div>
+    <h1 class="welcome-title">TASHKENT <span>2077</span></h1>
+    <p class="welcome-subtitle">
+      Engineering the City of Tomorrow.<br>
+      Explore the 12 districts, 120 wide trapezoidal megastructures, the subterranean maglev transit network, the Central Green Park with its river, and the industrial power station.
+    </p>
+    <button class="btn-start-presentation" id="btn-start-presentation">
+      <span>START PRESENTATION</span>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+    </button>
+    <div class="keyboard-legend">
+      <span>Navigate: <span class="key-badge">←</span> <span class="key-badge">→</span> or <span class="key-badge">SPACE</span></span>
+      <span>Fullscreen: <span class="key-badge">F</span></span>
+      <span>Speaker Notes: <span class="key-badge">N</span></span>
+    </div>
+  </div>
+
+  <!-- QUICK JUMP DRAWER -->
+  <aside id="drawer-jump">
+    <div class="drawer-header">
+      <span class="drawer-title">Slide Index</span>
+      <button class="drawer-close" id="btn-close-drawer">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="drawer-list" id="drawer-list"></div>
+  </aside>
+
+  <!-- SPEAKER NOTES OVERLAY -->
+  <div id="notes-modal">
+    <div class="notes-head">
+      <span class="notes-title" id="notes-title">SPEAKER TALKING POINTS</span>
+      <button style="background:none;border:none;color:var(--text-muted);cursor:pointer;" onclick="toggleNotes(false)">✕</button>
+    </div>
+    <div class="notes-content" id="notes-body">
+      Welcome your audience. Introduce Tashkent 2077 as a dense, realistic, and scientifically grounded future metropolis accommodating 37.5 million residents across 12 distinct districts, 120 wide trapezoids, a massive Central Green Park, and resilient energy/water infrastructure.
+    </div>
+    <div class="notes-tag-disclaimer">
+      * Note: 37.5M population and $60T budget represent a hypothetical conceptual engineering monograph.
+    </div>
+  </div>
+
+  <!-- =============================================================
+       JAVASCRIPT ARCHITECTURE & 3D ENGINE (TASHKENT 2077)
+       ============================================================= -->
+  <script>
+    /* ===========================================================
+       1. SYNTHESIZED AUDIO ENGINE (Web Audio API)
+       =========================================================== */
+    class FuturisticSoundFX {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      }
+      playTone(freq, type = 'sine', duration = 0.15, gainVal = 0.05) {
+        if (!this.enabled || !this.ctx) return;
+        try {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          osc.frequency.setValueAtTime(freq, this.ctx.currentTime);
+          gain.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + duration);
+        } catch (e) {}
+      }
+      slideChime() {
+        this.playTone(520, 'sine', 0.16, 0.04);
+        setTimeout(() => this.playTone(780, 'sine', 0.2, 0.03), 70);
+      }
+      clickPop() {
+        this.playTone(880, 'triangle', 0.07, 0.03);
+      }
+      quakeRumble() {
+        this.playTone(60, 'sawtooth', 0.85, 0.08);
+      }
+      toggle() {
+        this.enabled = !this.enabled;
+        return this.enabled;
+      }
+    }
+    const sfx = new FuturisticSoundFX();
+
+    /* ===========================================================
+       2. TASHKENT 2077: 12 DISTRICTS DATA SPECIFICATION (37.5M Total)
+       =========================================================== */
+    const DISTRICTS_DATA = [
+      { id: "D01", name: "Yunusobod", pop: 4.6, megaPop: 368000, surrPop: 920000, baseW: 560, baseArea: 313600, angle: 90, dist: 210, facilities: "Regional Hospital, Nanotech Labs, Metro Terminal North", schools: "38 Elementary & Daycare Pods" },
+      { id: "D02", name: "Chilonzor", pop: 4.0, megaPop: 320000, surrPop: 800000, baseW: 530, baseArea: 280900, angle: 215, dist: 200, facilities: "Polytechnic Campus, Olympic Sports Complex, Maglev Depots", schools: "32 Elementary & Daycare Pods" },
+      { id: "D03", name: "Mirzo Ulug‘bek", pop: 3.8, megaPop: 304000, surrPop: 760000, baseW: 520, baseArea: 270400, angle: 45, dist: 210, facilities: "Aerospace Research Academy, High-Altitude Observatories", schools: "30 Elementary & Daycare Pods" },
+      { id: "D04", name: "Sergeli", pop: 3.7, megaPop: 296000, surrPop: 740000, baseW: 510, baseArea: 260100, angle: 270, dist: 220, facilities: "Subterranean Maglev Terminal South, Automated Freight Yard", schools: "28 Elementary & Daycare Pods" },
+      { id: "D05", name: "Yangihayot", pop: 3.6, megaPop: 288000, surrPop: 720000, baseW: 500, baseArea: 250000, angle: 240, dist: 230, facilities: "Clean Energy Storage Hub, Circular Materials Fabrication", schools: "28 Elementary & Daycare Pods" },
+      { id: "D06", name: "Uchtepa", pop: 3.4, megaPop: 272000, surrPop: 680000, baseW: 490, baseArea: 240100, angle: 180, dist: 210, facilities: "Medical Sciences Center, Pediatric Innovation Clinic", schools: "26 Elementary & Daycare Pods" },
+      { id: "D07", name: "Yashnobod", pop: 3.2, megaPop: 256000, surrPop: 640000, baseW: 480, baseArea: 230400, angle: 15, dist: 215, facilities: "Agro-Biotechnology Institute, Cold-Chain Terminals", schools: "24 Elementary & Daycare Pods" },
+      { id: "D08", name: "Olmazor", pop: 3.0, megaPop: 240000, surrPop: 600000, baseW: 470, baseArea: 220900, angle: 125, dist: 180, facilities: "Cultural Heritage Archives, National Symphony Hall", schools: "22 Elementary & Daycare Pods" },
+      { id: "D09", name: "Mirobod", pop: 2.4, megaPop: 192000, surrPop: 480000, baseW: 440, baseArea: 193600, angle: 330, dist: 115, facilities: "Financial Exchange, Central Silk Road Trade Chambers", schools: "18 Elementary & Daycare Pods" },
+      { id: "D10", name: "Shayxontohur", pop: 2.3, megaPop: 184000, surrPop: 460000, baseW: 430, baseArea: 184900, angle: 150, dist: 110, facilities: "International Media Tower, University of World Economy", schools: "18 Elementary & Daycare Pods" },
+      { id: "D11", name: "Bektemir", pop: 2.2, megaPop: 176000, surrPop: 440000, baseW: 420, baseArea: 176400, angle: 305, dist: 230, facilities: "Advanced Industrial Robotics, Water Reclamation Plant", schools: "16 Elementary & Daycare Pods" },
+      { id: "D12", name: "Yakkasaroy", pop: 1.3, megaPop: 104000, surrPop: 260000, baseW: 400, baseArea: 160000, angle: 230, dist: 110, facilities: "Civic Diplomacy Pavilion, Botanical Research Atrium", schools: "12 Elementary & Daycare Pods" }
+    ];
+
+    /* ===========================================================
+       3. SPEAKER TALKING POINTS PER SLIDE (12 Slides)
+       =========================================================== */
+    const SPEAKER_NOTES = [
+      "Slide 1: Welcome audience. Introduce Tashkent 2077: 37.5M population consolidated into 180 km² across 12 integrated districts, preserving 90% of arable regional soils.",
+      "Slide 2: Contrast conventional sprawl with vertical consolidation. Sprawl consumes 1,850 km² and causes 70-min traffic jams; Tashkent 2077 cuts travel to <12 mins via underground loops.",
+      "Slide 3: Explain the 120 wide trapezoids. Footprint bases range from 400m to 600m (16 to 36 hectares per building) with low center-of-gravity ratio of 0.38H and quad-quadrant solar atriums.",
+      "Slide 4: Walk through the 5-minute vertical city. Daycares and primary schools on tiers 15–39; polyclinics on tiers 40–59; specialized universities and hospitals in the 20% mid-rise ring.",
+      "Slide 5: Reveal the zero-car 4-tier transit network. Surface pedestrianization, -10m concourse, -24m high-speed maglev vacuum lines, and -45m automated freight capsules.",
+      "Slide 6: Seismic physics demonstration. Trigger Mw 7.5 earthquake to show how elastomeric lead-rubber bearings and viscous dampers anchored 68m into bedrock dissipate 78% of sway.",
+      "Slide 7: Industrial Power Station. Tour the reactor containment buildings, turbine halls, cooling systems, outdoor switchyard, and Generation-IV SMR nuclear baseload.",
+      "Slide 8: Golden Wheat Agro-Belt. Show how the continuous outer agricultural ring and 24 geodesic bio-domes produce 32,000 tons of grain and food daily with underground cold-chain tubes.",
+      "Slide 9: Circular water and Central Green Park. Detail 94% wastewater reclamation via the Water Purity Tower and the cooling effect of the central river and park.",
+      "Slide 10: Interactive 3D Metropolis & Subterranean Explorer. Use the Ground X-Ray slider to reveal the underground maglev network, and select any district to dive underground or inspect buildings.",
+      "Slide 11: Metropolitan Demographic Ledger. Review the comprehensive matrix of population, elementary school slots, and hospital facilities across all 12 districts.",
+      "Slide 12: Scientific References. Conclude with published standards and benchmarks from IAEA, USGS, UN-Habitat, UITP, FAO, IEA, EERI, and ASHRAE."
+    ];
+
+    /* ===========================================================
+       4. THREE.JS 3D ENGINE (TASHKENT 2077)
+       =========================================================== */
+    let scene, camera, renderer, controls, raycaster, mouse;
+    let megastructureMeshes = [];
+    let megaSpecs = [];            // size/position of every big tower (used for window overlays)
+    let buildingFootprints = [];   // tower foundation squares (used to keep new buildings clear of them)
+    let greenPathCurve = null;     // Green Path centre line (kept clear of buildings)
+    let districtClusters = [];
+    let subterraneanGroup, greenPathGroup, centralParkGroup, mallGroup, waterTowerGroup, powerComplexGroup;
+    let trains = [];
+    let waterFlowGroups = [];
+    let isDayLighting = false;
+    let dirLight, ambientLight, hemisphereLight;
+
+    // Ground Materials for Dynamic X-Ray Cutaway
+    let urbanBaseMat, wheatBeltMat;
+    let groundFurrows = [];
+    let isUndergroundMode = false;
+    let isTrainsMoving = true;
+
+    // Dynamic Smoke & Vapor Particle Systems
+    let smokeParticles = [];
+    let steamParticles = [];
+    let aviationBeacons = [];
+
+    // District Underground Stations Array
+    let districtUndergroundStations = [];
+
+    function initThreeScene() {
+      const container = document.getElementById('webgl-canvas-container');
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+
+      // Scene & Fog
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x03060f);
+      scene.fog = new THREE.FogExp2(0x03060f, 0.0009);
+
+      // Camera
+      camera = new THREE.PerspectiveCamera(45, width / height, 1, 4000);
+      camera.position.set(420, 260, 480);
+
+      // Renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.3;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      // OrbitControls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxDistance = 1400;
+      controls.minDistance = 15;
+      controls.maxPolarAngle = Math.PI / 2 + 0.15; // allows looking up slightly from underground
+      controls.enabled = false;
+
+      // Raycaster
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+
+      // Lighting
+      ambientLight = new THREE.AmbientLight(0x182244, 1.4);
+      scene.add(ambientLight);
+
+      hemisphereLight = new THREE.HemisphereLight(0x00f0ff, 0x050714, 0.65);
+      scene.add(hemisphereLight);
+
+      dirLight = new THREE.DirectionalLight(0x94bbfb, 1.8);
+      dirLight.position.set(320, 520, 280);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 100;
+      dirLight.shadow.camera.far = 1500;
+      const d = 550;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      scene.add(dirLight);
+
+      // Build Tashkent 2077 Metropolis Elements
+      buildGroundAndGoldenWheatBelt();
+      buildMassiveCentralGreenPark();
+      build120TrapezoidMegastructures();
+      buildMegastructureWindows();
+      buildGrandOasisMall();
+      buildWaterCleaningTower();
+      buildRealisticPowerPlantStation();
+      buildInteractiveSubterraneanTransit();
+      buildTheGreenPathRibbon();
+      buildSurroundingMidrisesAndNeonDecor();   // after the green path so buildings keep clear of it
+      buildSmallMetroEntrances();
+      buildStarDustParticles();
+
+      window.addEventListener('resize', onWindowResize);
+      renderer.domElement.addEventListener('click', onCanvasClick);
+    }
+
+    /* -------------------------------------------------------------
+       GROUND & ONE BIG GOLDEN WHEAT FARM BELT (X-Ray Ready)
+       ------------------------------------------------------------- */
+    function buildGroundAndGoldenWheatBelt() {
+      // Inner Urban Base Disc (Radius: 250)
+      const urbanBaseGeo = new THREE.CircleGeometry(250, 64);
+      urbanBaseMat = new THREE.MeshStandardMaterial({
+        color: 0x080f1e,
+        roughness: 0.88,
+        metalness: 0.2,
+        transparent: true,
+        opacity: 1.0,
+        depthWrite: true
+      });
+      const urbanBase = new THREE.Mesh(urbanBaseGeo, urbanBaseMat);
+      urbanBase.rotation.x = -Math.PI / 2;
+      urbanBase.position.y = -0.4;
+      urbanBase.receiveShadow = true;
+      scene.add(urbanBase);
+
+      // ONE BIG CONTINUOUS GOLDEN-YELLOW WHEAT FARM BELT (Radius: 250 to 395)
+      const wheatBeltGeo = new THREE.RingGeometry(270, 380, 96);
+      wheatBeltMat = new THREE.MeshStandardMaterial({
+        color: 0x9a7427,
+        roughness: 0.96,
+        metalness: 0.0,
+        emissive: 0x5c4518,
+        emissiveIntensity: 0.06,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.0,
+        depthWrite: true
+      });
+      const wheatBelt = new THREE.Mesh(wheatBeltGeo, wheatBeltMat);
+      wheatBelt.rotation.x = -Math.PI / 2;
+      wheatBelt.position.y = -0.35;
+      wheatBelt.receiveShadow = true;
+      scene.add(wheatBelt);
+
+      // Concentric Agricultural Furrows (Wheat field lines)
+      for (let r = 278; r <= 372; r += 22) {
+        const ringGeo = new THREE.RingGeometry(r - 0.6, r + 0.6, 64);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: 0xd6b45b,
+          transparent: true,
+          opacity: 0.22,
+          side: THREE.DoubleSide
+        });
+        const furrow = new THREE.Mesh(ringGeo, ringMat);
+        furrow.rotation.x = -Math.PI / 2;
+        furrow.position.y = -0.3;
+        scene.add(furrow);
+        groundFurrows.push(furrow);
+      }
+
+      // Grounded greenhouse and crop modules: no floating orb-like objects
+      for (let i = 0; i < 16; i++) {
+        const angle = (i * 2 * Math.PI) / 16;
+        const rad = 318 + (i % 2) * 22;
+        const gx = rad * Math.cos(angle), gz = rad * Math.sin(angle);
+        const module = new THREE.Group();
+        module.position.set(gx, 0, gz);
+        const base = new THREE.Mesh(new THREE.BoxGeometry(22, 0.7, 13), new THREE.MeshStandardMaterial({ color: 0x365b35, roughness: 0.9 }));
+        base.position.y = 0.35; module.add(base);
+        const glass = new THREE.Mesh(new THREE.BoxGeometry(20, 4.2, 11), new THREE.MeshStandardMaterial({ color: 0x9bd8c5, transparent: true, opacity: 0.34, roughness: 0.18, metalness: 0.12 }));
+        glass.position.y = 2.7; module.add(glass);
+        const roof = new THREE.Mesh(new THREE.BoxGeometry(21, 0.35, 12), new THREE.MeshStandardMaterial({ color: 0x477d55, roughness: 0.7 }));
+        roof.position.y = 4.9; module.add(roof);
+        scene.add(module);
+      }
+      // Distinct crop plots and irrigation lanes break up the continuous gold appearance.
+      for (let i = 0; i < 28; i++) {
+        const a = (i * 2 * Math.PI) / 28;
+        const r = 335 + (i % 4) * 8;
+        const plot = new THREE.Mesh(new THREE.BoxGeometry(30, 0.12, 8), new THREE.MeshStandardMaterial({ color: i % 3 === 0 ? 0x66834a : 0xb99a48, roughness: 1 }));
+        plot.position.set(Math.cos(a) * r, -0.18, Math.sin(a) * r);
+        plot.rotation.y = -a;
+        scene.add(plot);
+      }
+    }
+
+    /* -------------------------------------------------------------
+       MASSIVE CENTRAL GREEN PARK WITH RIVER & TREES (NO CENTRAL POLE)
+       ------------------------------------------------------------- */
+    function buildMassiveCentralGreenPark() {
+      centralParkGroup = new THREE.Group();
+
+      const lawnMat = new THREE.MeshStandardMaterial({
+        color: 0x286b4c, roughness: 0.92, metalness: 0.02
+      });
+      const lawn = new THREE.Mesh(new THREE.CircleGeometry(58, 96), lawnMat);
+      lawn.rotation.x = -Math.PI / 2;
+      lawn.position.y = 0.12;
+      lawn.receiveShadow = true;
+      centralParkGroup.add(lawn);
+
+      // Concentric promenade rings give the park a deliberate civic-plaza layout.
+      const ringMat = new THREE.MeshStandardMaterial({ color: 0xc8b994, roughness: 0.82 });
+      [53, 43].forEach((r, i) => {
+        const ring = new THREE.Mesh(new THREE.RingGeometry(r - 0.9, r + 0.9, 96), ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.22 + i * 0.015;
+        centralParkGroup.add(ring);
+      });
+
+      // A broad, calm, naturally curved watercourse with soft banks.
+      const riverPts = [
+        new THREE.Vector3(49, 0.38, 35),
+        new THREE.Vector3(38, 0.38, 29),
+        new THREE.Vector3(27, 0.38, 17),
+        new THREE.Vector3(17, 0.38, 6),
+        new THREE.Vector3(4, 0.38, 0),
+        new THREE.Vector3(-10, 0.38, -9),
+        new THREE.Vector3(-22, 0.38, -20),
+        new THREE.Vector3(-35, 0.38, -29),
+        new THREE.Vector3(-49, 0.38, -36)
+      ];
+      const riverCurve = new THREE.CatmullRomCurve3(riverPts);
+      const bankMat = new THREE.MeshStandardMaterial({ color: 0xb6a783, roughness: 0.9 });
+      const waterMat = new THREE.MeshStandardMaterial({
+        color: 0x167e9d, roughness: 0.2, metalness: 0.22,
+        emissive: 0x06384d, emissiveIntensity: 0.16
+      });
+      const bank = new THREE.Mesh(new THREE.TubeGeometry(riverCurve, 96, 4.1, 12, false), bankMat);
+      bank.scale.y = 0.12;
+      centralParkGroup.add(bank);
+      const river = new THREE.Mesh(new THREE.TubeGeometry(riverCurve, 96, 3.35, 16, false), waterMat);
+      river.scale.y = 0.12;
+      centralParkGroup.add(river);
+
+      // Thin reflective highlights make the water read as flowing water, not neon tubing.
+      const flowGroup = new THREE.Group();
+      for (let i = 0; i < 34; i++) {
+        const dash = new THREE.Mesh(
+          new THREE.SphereGeometry(0.24, 8, 6),
+          new THREE.MeshBasicMaterial({ color: 0xb9efff, transparent: true, opacity: 0.48 })
+        );
+        dash.scale.set(1.9, 0.22, 0.7);
+        dash.userData.flowT = i / 34;
+        flowGroup.add(dash);
+      }
+      flowGroup.userData.curve = riverCurve;
+      centralParkGroup.add(flowGroup);
+      waterFlowGroups.push(flowGroup);
+
+      // Three low-profile stone footbridges cross the stream.
+      [
+        { x: 25, z: 16, rot: 0.72 },
+        { x: 2, z: -1, rot: 0.72 },
+        { x: -25, z: -22, rot: 0.72 }
+      ].forEach(b => {
+        const bridge = new THREE.Group();
+        bridge.position.set(b.x, 0.82, b.z);
+        bridge.rotation.y = b.rot;
+        const deck = new THREE.Mesh(
+          new THREE.BoxGeometry(11, 0.65, 4.2),
+          new THREE.MeshStandardMaterial({ color: 0xd8c8a5, roughness: 0.78 })
+        );
+        bridge.add(deck);
+        const railMat = new THREE.MeshStandardMaterial({ color: 0x536b68, metalness: 0.35, roughness: 0.55 });
+        [-1, 1].forEach(side => {
+          const rail = new THREE.Mesh(new THREE.BoxGeometry(11, 0.65, 0.22), railMat);
+          rail.position.set(0, 0.48, side * 1.85);
+          bridge.add(rail);
+        });
+        centralParkGroup.add(bridge);
+      });
+
+      // A refined central water garden: shallow basin, stepped stone rim and gentle jets.
+      const plaza = new THREE.Mesh(
+        new THREE.CylinderGeometry(10.5, 11.2, 0.8, 64),
+        new THREE.MeshStandardMaterial({ color: 0xd1c2a0, roughness: 0.72 })
+      );
+      plaza.position.set(0, 0.48, 0);
+      centralParkGroup.add(plaza);
+      const basin = new THREE.Mesh(
+        new THREE.CylinderGeometry(8.8, 9.2, 0.45, 64),
+        new THREE.MeshStandardMaterial({ color: 0x176d85, roughness: 0.18, metalness: 0.2 })
+      );
+      basin.position.set(0, 0.95, 0);
+      centralParkGroup.add(basin);
+      const rim = new THREE.Mesh(
+        new THREE.TorusGeometry(9.4, 0.42, 10, 64),
+        new THREE.MeshStandardMaterial({ color: 0xe5d7b8, roughness: 0.55 })
+      );
+      rim.rotation.x = Math.PI / 2;
+      rim.position.y = 1.05;
+      centralParkGroup.add(rim);
+      for (let j = 0; j < 7; j++) {
+        const jet = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.12, 0.3, 2.3 + (j % 3) * 0.45, 10),
+          new THREE.MeshBasicMaterial({ color: 0x8bd8e6, transparent: true, opacity: 0.5 })
+        );
+        jet.position.set(Math.cos(j * 0.9) * 3.6, 2.0, Math.sin(j * 0.9) * 3.6);
+        centralParkGroup.add(jet);
+      }
+
+      // Formal planting beds, with muted botanical colours rather than neon discs.
+      const flowerColors = [0xd98b91, 0xe5c56b, 0xb59acb, 0xe9d8b7];
+      for (let f = 0; f < 12; f++) {
+        const a = (f * Math.PI * 2) / 12;
+        const r = 31;
+        const bed = new THREE.Mesh(
+          new THREE.CircleGeometry(3.4, 24),
+          new THREE.MeshStandardMaterial({ color: 0x344f3e, roughness: 1, side: THREE.DoubleSide })
+        );
+        bed.rotation.x = -Math.PI / 2;
+        bed.position.set(Math.cos(a) * r, 0.25, Math.sin(a) * r);
+        centralParkGroup.add(bed);
+        for (let k = 0; k < 7; k++) {
+          const fa = k * Math.PI * 2 / 7;
+          const bloom = new THREE.Mesh(
+            new THREE.SphereGeometry(0.42, 8, 6),
+            new THREE.MeshStandardMaterial({ color: flowerColors[(f + k) % flowerColors.length], roughness: 0.8 })
+          );
+          bloom.scale.y = 0.55;
+          bloom.position.set(Math.cos(a) * r + Math.cos(fa) * 2, 0.72, Math.sin(a) * r + Math.sin(fa) * 2);
+          centralParkGroup.add(bloom);
+        }
+      }
+
+      // Tree groves in deliberate clusters, leaving clear lawns and river views.
+      const trunkGeo = new THREE.CylinderGeometry(0.42, 0.62, 4.2, 8);
+      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x765238, roughness: 1 });
+      const canopyGeo = new THREE.SphereGeometry(2.65, 12, 10);
+      const canopyMats = [
+        new THREE.MeshStandardMaterial({ color: 0x397b54, roughness: 0.9 }),
+        new THREE.MeshStandardMaterial({ color: 0x4b875b, roughness: 0.9 }),
+        new THREE.MeshStandardMaterial({ color: 0x2e6849, roughness: 0.9 })
+      ];
+      for (let i = 0; i < 76; i++) {
+        const a = (i * 2.399963) % (Math.PI * 2);
+        const r = 17 + (i % 5) * 6.2;
+        const tx = Math.cos(a) * r;
+        const tz = Math.sin(a) * r;
+        if (Math.abs(tx - tz) < 8 || Math.hypot(tx, tz) < 14) continue;
+        const tree = new THREE.Group();
+        tree.position.set(tx, 0, tz);
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.y = 2.1;
+        tree.add(trunk);
+        const canopy = new THREE.Mesh(canopyGeo, canopyMats[i % canopyMats.length]);
+        canopy.position.y = 5.1;
+        canopy.scale.set(1, 0.86, 1);
+        tree.add(canopy);
+        centralParkGroup.add(tree);
+      }
+
+      // Benches and warm pedestrian lighting around the inner promenade.
+      for (let i = 0; i < 16; i++) {
+        const a = i * Math.PI * 2 / 16;
+        const r = 47;
+        const x = Math.cos(a) * r, z = Math.sin(a) * r;
+        const bench = new THREE.Mesh(
+          new THREE.BoxGeometry(3.2, 0.35, 0.85),
+          new THREE.MeshStandardMaterial({ color: 0x8c7556, roughness: 0.8 })
+        );
+        bench.position.set(x, 0.8, z);
+        bench.rotation.y = -a;
+        centralParkGroup.add(bench);
+        const lamp = new THREE.Group();
+        lamp.position.set(Math.cos(a) * 49, 0, Math.sin(a) * 49);
+        const pole = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.12, 0.18, 4.8, 8),
+          new THREE.MeshStandardMaterial({ color: 0x536b68, metalness: 0.45, roughness: 0.55 })
+        );
+        pole.position.y = 2.4;
+        lamp.add(pole);
+        const glow = new THREE.Mesh(
+          new THREE.SphereGeometry(0.42, 10, 8),
+          new THREE.MeshBasicMaterial({ color: 0xffdca1 })
+        );
+        glow.position.y = 4.9;
+        lamp.add(glow);
+        centralParkGroup.add(lamp);
+      }
+
+      scene.add(centralParkGroup);
+    }
+
+    /* -------------------------------------------------------------
+       120 WIDE TRAPEZOIDAL MEGASTRUCTURES (10 PER DISTRICT)
+       ------------------------------------------------------------- */
+    function build120TrapezoidMegastructures() {
+      const localOffsets = [
+        { dx: 0,   dz: 0,   scaleW: 1.05, scaleH: 1.05 },
+        { dx: -24, dz: -20, scaleW: 0.95, scaleH: 0.98 },
+        { dx: 24,  dz: -20, scaleW: 0.95, scaleH: 0.96 },
+        { dx: -28, dz: 20,  scaleW: 0.98, scaleH: 0.94 },
+        { dx: 28,  dz: 20,  scaleW: 0.96, scaleH: 0.97 },
+        { dx: 0,   dz: -40, scaleW: 0.92, scaleH: 0.92 },
+        { dx: -44, dz: 0,   scaleW: 0.90, scaleH: 0.93 },
+        { dx: 44,  dz: 0,   scaleW: 0.91, scaleH: 0.95 },
+        { dx: -32, dz: -42, scaleW: 0.88, scaleH: 0.90 },
+        { dx: 32,  dz: 42,  scaleW: 0.89, scaleH: 0.91 }
+      ];
+
+      DISTRICTS_DATA.forEach((district, dIdx) => {
+        const rad = (district.angle * Math.PI) / 180;
+        const centerX = district.dist * Math.cos(rad);
+        const centerZ = district.dist * Math.sin(rad);
+
+        const districtGroup = new THREE.Group();
+        districtGroup.position.set(centerX, 0, centerZ);
+
+        // Floating District Highlight Ring
+        const ringGeo = new THREE.RingGeometry(52, 54, 48);
+        const ringMat = new THREE.MeshBasicMaterial({
+          color: dIdx % 2 === 0 ? 0x00f0ff : 0xec4899,
+          transparent: true,
+          opacity: 0.45,
+          side: THREE.DoubleSide
+        });
+        const distRing = new THREE.Mesh(ringGeo, ringMat);
+        distRing.rotation.x = -Math.PI / 2;
+        distRing.position.y = 0.2;
+        districtGroup.add(distRing);
+
+        localOffsets.forEach((off, bIdx) => {
+          const bx = off.dx;
+          const bz = off.dz;
+
+          const heightScaled = (40 + (bIdx % 4) * 3) * off.scaleH;
+          const baseWidth = (24 + (bIdx % 3) * 2) * off.scaleW;
+          const topWidth = baseWidth * 0.64;
+          const rBottom = (baseWidth * Math.SQRT2) / 2;
+          const rTop = (topWidth * Math.SQRT2) / 2;
+
+          const megaGroup = new THREE.Group();
+          megaGroup.position.set(bx, 0, bz);
+
+          const bNumber = String(bIdx + 1).padStart(2, '0');
+          const calculatedBaseM = Math.round(district.baseW * off.scaleW);
+          const calculatedAreaM = Math.round(calculatedBaseM * calculatedBaseM);
+          const calculatedH = Math.round(heightScaled * 7.2);
+
+          const megaData = {
+            districtIndex: dIdx,
+            districtName: district.name,
+            districtPop: `${district.pop} Million`,
+            megaName: `${district.name} M${bNumber}`,
+            megaCap: `~${district.megaPop.toLocaleString()} residents`,
+            surrCap: `${district.surrPop.toLocaleString()} in district`,
+            height: `${calculatedH} meters`,
+            floors: `${65 + (bIdx % 5) * 4} Multi-Use Tiers`,
+            baseWidth: `${calculatedBaseM} meters per side`,
+            baseArea: `~${calculatedAreaM.toLocaleString()} m² (${(calculatedAreaM / 10000).toFixed(1)} ha)`,
+            facilities: district.facilities,
+            worldPos: { x: centerX + bx, y: 0, z: centerZ + bz }
+          };
+          megaGroup.userData = megaData;
+          megaSpecs.push({ x: centerX + bx, z: centerZ + bz, bw: baseWidth, H: heightScaled });
+          buildingFootprints.push({ x: centerX + bx, z: centerZ + bz, half: (baseWidth + 4) / 2 });
+
+          // 1. Foundation Plinth
+          const fGeo = new THREE.BoxGeometry(baseWidth + 4, 3, baseWidth + 4);
+          const fMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8, roughness: 0.4 });
+          const foundation = new THREE.Mesh(fGeo, fMat);
+          foundation.position.y = 1.5;
+          foundation.receiveShadow = true;
+          megaGroup.add(foundation);
+
+          // 2. Wide Trapezoid Frustum Core
+          const frustumGeo = new THREE.CylinderGeometry(rTop, rBottom, heightScaled, 4, 1, false);
+          const frustumMat = new THREE.MeshStandardMaterial({
+            color: 0x091224,
+            metalness: 0.8,
+            roughness: 0.25,
+            polygonOffset: true,
+            polygonOffsetFactor: 1,
+            polygonOffsetUnits: 1
+          });
+          const frustumMesh = new THREE.Mesh(frustumGeo, frustumMat);
+          frustumMesh.rotation.y = Math.PI / 4;
+          frustumMesh.position.y = heightScaled / 2 + 3;
+          frustumMesh.castShadow = true;
+          frustumMesh.receiveShadow = true;
+          megaGroup.add(frustumMesh);
+
+          // 3. Cyberpunk Diagrid Wireframe
+          const wireframeGeo = new THREE.WireframeGeometry(frustumGeo);
+          const wireColor = dIdx % 3 === 0 ? 0x00f0ff : (dIdx % 3 === 1 ? 0xec4899 : 0xa855f7);
+          const wireframeMat = new THREE.LineBasicMaterial({
+            color: wireColor,
+            transparent: true,
+            opacity: 0.45
+          });
+          const diagrid = new THREE.LineSegments(wireframeGeo, wireframeMat);
+          diagrid.rotation.y = Math.PI / 4;
+          diagrid.position.y = heightScaled / 2 + 3;
+          megaGroup.add(diagrid);
+
+          // 4. Terraced Illuminated Balconies (5 Bands)
+          for (let f = 1; f <= 5; f++) {
+            const ratio = f / 6;
+            const curR = rBottom + (rTop - rBottom) * ratio;
+            const bandGeo = new THREE.CylinderGeometry(curR + 0.35, curR + 0.35, 0.6, 4);
+            const bandMat = new THREE.MeshBasicMaterial({
+              color: wireColor,
+              transparent: true,
+              opacity: 0.75
+            });
+            const band = new THREE.Mesh(bandGeo, bandMat);
+            band.rotation.y = Math.PI / 4;
+            band.position.y = 3 + ratio * heightScaled;
+            megaGroup.add(band);
+          }
+
+          // 5. Crown Rooftop Park & Solar Array
+          const crownGeo = new THREE.CylinderGeometry(rTop + 1.2, rTop, 2.2, 4);
+          const crownMat = new THREE.MeshStandardMaterial({
+            color: 0x1e293b,
+            metalness: 0.85,
+            roughness: 0.2,
+            emissive: wireColor,
+            emissiveIntensity: 0.25
+          });
+          const crown = new THREE.Mesh(crownGeo, crownMat);
+          crown.rotation.y = Math.PI / 4;
+          crown.position.y = heightScaled + 3 + 1.1;
+          megaGroup.add(crown);
+
+          // Register for raycasting & references
+          frustumMesh.userData = megaData;
+          megastructureMeshes.push(frustumMesh);
+
+          districtGroup.add(megaGroup);
+        });
+
+        districtClusters.push({ name: district.name, pos: { x: centerX, y: 0, z: centerZ } });
+        scene.add(districtGroup);
+      });
+    }
+
+    /* -------------------------------------------------------------
+       WINDOW TEXTURES + MERGED-GEOMETRY HELPERS
+       One shared 16x16 grid of windows (random lit / dark) used by every building.
+       ------------------------------------------------------------- */
+    const WIN_GRID = 16;        // window cells per texture side
+    const WIN_CELL_W = 2.6;     // world width of one window cell
+    const WIN_CELL_H = 3.0;     // world height of one floor
+    let windowTextures = null;
+
+    function makeRng(seed) {
+      let a = seed >>> 0;
+      return function () {
+        a = (a + 0x6D2B79F5) >>> 0;
+        let t = a;
+        t = Math.imul(t ^ (t >>> 15), t | 1);
+        t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function getWindowTextures() {
+      if (windowTextures) return windowTextures;
+      const S = 512, C = S / WIN_GRID;
+      const rng = makeRng(77231);
+      const mkCanvas = () => { const c = document.createElement('canvas'); c.width = c.height = S; return c; };
+      const cWall = mkCanvas(), cGlow = mkCanvas(), cOver = mkCanvas();
+      const gW = cWall.getContext('2d'), gG = cGlow.getContext('2d'), gO = cOver.getContext('2d');
+      gW.fillStyle = '#0a1429'; gW.fillRect(0, 0, S, S);   // facade
+      gG.fillStyle = '#000000'; gG.fillRect(0, 0, S, S);   // glow map (only lit windows glow)
+      const warm = ['#ffd98a', '#ffe7b0', '#ffcf6e', '#fff0d2'];
+      const cool = ['#9fe6ff', '#c4f1ff'];
+      const neon = ['#ff9bd6', '#c9a4ff'];
+      for (let r = 0; r < WIN_GRID; r++) {
+        for (let c = 0; c < WIN_GRID; c++) {
+          const x = c * C + 6, y = r * C + 8, w = C - 12, h = C - 15;
+          gW.fillStyle = '#13244a'; gW.fillRect(x, y, w, h);      // dark glass
+          gO.fillStyle = '#0d1b3a'; gO.fillRect(x, y, w, h);      // overlay: dark glass (rest transparent)
+          if (rng() < 0.6) {
+            const k = rng();
+            const col = k < 0.72 ? warm[Math.floor(rng() * warm.length)]
+                      : k < 0.92 ? cool[Math.floor(rng() * cool.length)]
+                      : neon[Math.floor(rng() * neon.length)];
+            gG.fillStyle = col; gG.fillRect(x, y, w, h);
+            gO.fillStyle = col; gO.fillRect(x, y, w, h);
+          }
+        }
+      }
+      const aniso = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+      const mk = (cv) => {
+        const t = new THREE.CanvasTexture(cv);
+        t.wrapS = t.wrapT = THREE.RepeatWrapping;
+        t.anisotropy = aniso;
+        return t;
+      };
+      windowTextures = { wall: mk(cWall), glow: mk(cGlow), over: mk(cOver) };
+      return windowTextures;
+    }
+
+    function newGeoBuilder() { return { pos: [], nor: [], uv: [], idx: [] }; }
+
+    // p0 bottom-left, p1 bottom-right, p2 top-right, p3 top-left (counter-clockwise seen from outside)
+    function pushQuad(b, p0, p1, p2, p3, u0, v0, u1, v1) {
+      const ax = p1[0] - p0[0], ay = p1[1] - p0[1], az = p1[2] - p0[2];
+      const bx = p3[0] - p0[0], by = p3[1] - p0[1], bz = p3[2] - p0[2];
+      let nx = ay * bz - az * by, ny = az * bx - ax * bz, nz = ax * by - ay * bx;
+      const l = Math.hypot(nx, ny, nz) || 1;
+      nx /= l; ny /= l; nz /= l;
+      const base = b.pos.length / 3;
+      [p0, p1, p2, p3].forEach((p) => { b.pos.push(p[0], p[1], p[2]); b.nor.push(nx, ny, nz); });
+      b.uv.push(u0, v0, u1, v0, u1, v1, u0, v1);
+      b.idx.push(base, base + 1, base + 2, base, base + 2, base + 3);
+    }
+
+    function geometryFromBuilder(b) {
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.Float32BufferAttribute(b.pos, 3));
+      g.setAttribute('normal', new THREE.Float32BufferAttribute(b.nor, 3));
+      g.setAttribute('uv', new THREE.Float32BufferAttribute(b.uv, 2));
+      g.setIndex(b.idx);
+      return g;
+    }
+
+    // A box with a window grid on all four walls (whole rows/columns, so windows never get squashed) and a plain roof.
+    function addWindowedBox(wallB, roofB, rng, cx, cz, w, d, y0, y1) {
+      [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([nx, nz]) => {
+        const tx = nz, tz = -nx;
+        const span = nx !== 0 ? d : w;
+        const fx = cx + nx * w / 2, fz = cz + nz * d / 2, hs = span / 2;
+        const p0 = [fx - tx * hs, y0, fz - tz * hs];
+        const p1 = [fx + tx * hs, y0, fz + tz * hs];
+        const p2 = [p1[0], y1, p1[2]];
+        const p3 = [p0[0], y1, p0[2]];
+        const cols = Math.max(2, Math.round(span / WIN_CELL_W));
+        const rows = Math.max(1, Math.round((y1 - y0) / WIN_CELL_H));
+        const u0 = Math.floor(rng() * WIN_GRID) / WIN_GRID, v0 = Math.floor(rng() * WIN_GRID) / WIN_GRID;
+        pushQuad(wallB, p0, p1, p2, p3, u0, v0, u0 + cols / WIN_GRID, v0 + rows / WIN_GRID);
+      });
+      pushQuad(roofB,
+        [cx - w / 2, y1, cz + d / 2], [cx + w / 2, y1, cz + d / 2],
+        [cx + w / 2, y1, cz - d / 2], [cx - w / 2, y1, cz - d / 2], 0, 0, 1, 1);
+    }
+
+    /* -------------------------------------------------------------
+       WINDOWS ON THE 120 TRAPEZOID MEGASTRUCTURES
+       Rows of windows follow the sloped faces (narrowing towards the crown) and skip the glowing balcony bands.
+       ------------------------------------------------------------- */
+    function buildMegastructureWindows() {
+      const tex = getWindowTextures();
+      const rng = makeRng(90210);
+      const b = newGeoBuilder();
+      megaSpecs.forEach((m) => {
+        const bw = m.bw, tw = bw * 0.64, H = m.H;
+        const yStart = 3 + 3.6, yEnd = 3 + H - 1.8;
+        const rows = Math.max(1, Math.floor((yEnd - yStart) / WIN_CELL_H));
+        const rowH = (yEnd - yStart) / rows;
+        const bandYs = [1, 2, 3, 4, 5].map((f) => 3 + (f / 6) * H);
+        const hwAt = (y) => bw / 2 + (tw / 2 - bw / 2) * ((y - 3) / H);
+        const cols = Math.max(4, Math.round(bw * 0.9 / WIN_CELL_W));
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].forEach(([nx, nz]) => {
+          const tx = nz, tz = -nx;
+          const u0 = Math.floor(rng() * WIN_GRID) / WIN_GRID, v0 = Math.floor(rng() * WIN_GRID) / WIN_GRID;
+          for (let k = 0; k < rows; k++) {
+            const ya = yStart + k * rowH, yb = ya + rowH;
+            if (bandYs.some((by) => by > ya - 0.5 && by < yb + 0.5)) continue;   // leave the balcony band clear
+            const off = 0.09;
+            const na = hwAt(ya) + off, nb = hwAt(yb) + off;
+            const ha = hwAt(ya) * 0.9, hb = hwAt(yb) * 0.9;
+            pushQuad(b,
+              [m.x + nx * na - tx * ha, ya, m.z + nz * na - tz * ha],
+              [m.x + nx * na + tx * ha, ya, m.z + nz * na + tz * ha],
+              [m.x + nx * nb + tx * hb, yb, m.z + nz * nb + tz * hb],
+              [m.x + nx * nb - tx * hb, yb, m.z + nz * nb - tz * hb],
+              u0, v0 + k / WIN_GRID, u0 + cols / WIN_GRID, v0 + (k + 1) / WIN_GRID);
+          }
+        });
+      });
+      const mat = new THREE.MeshBasicMaterial({
+        map: tex.over, alphaTest: 0.5,
+        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2
+      });
+      const mesh = new THREE.Mesh(geometryFromBuilder(b), mat);
+      mesh.frustumCulled = false;
+      scene.add(mesh);
+    }
+
+    /* -------------------------------------------------------------
+       DENSE CITY FILL: street-grid mid-rises in every free space, then small buildings in the leftover gaps.
+       Everything with a window grid. Keeps clear of towers, park, mall, water tower, power plant,
+       metro entrances and the Green Path ribbon.
+       ------------------------------------------------------------- */
+    function buildSurroundingMidrisesAndNeonDecor() {
+      const rng = makeRng(20771);
+      const tex = getWindowTextures();
+      const wallB = newGeoBuilder(), roofB = newGeoBuilder();
+      const placed = [];
+
+      const rectDist = (px, pz, x, z, hx, hz) => Math.hypot(Math.max(Math.abs(px - x) - hx, 0), Math.max(Math.abs(pz - z) - hz, 0));
+      const pathSamples = greenPathCurve ? greenPathCurve.getSpacedPoints(700) : [];
+      const metroSpots = DISTRICTS_DATA.map((d) => {
+        const r = (d.angle * Math.PI) / 180;
+        return { x: d.dist * Math.cos(r) + 12, z: d.dist * Math.sin(r) + 12 };
+      });
+
+      function isFree(x, z, hx, hz, margin) {
+        if (Math.hypot(Math.abs(x) + hx, Math.abs(z) + hz) > 246) return false;      // stay on the urban disc
+        if (rectDist(0, 0, x, z, hx, hz) < 50) return false;                           // central park + its trees
+        if (rectDist(115, 60, x, z, hx, hz) < 36) return false;                        // Oasis megamall
+        if (rectDist(-70, 95, x, z, hx, hz) < 14) return false;                        // water purification tower
+        if (Math.abs(x) < 83 + hx && Math.abs(z + 320) < 73 + hz) return false;  // north agro-belt power plant apron
+        for (let i = 0; i < buildingFootprints.length; i++) {
+          const f = buildingFootprints[i];
+          if (Math.abs(x - f.x) < f.half + hx + margin && Math.abs(z - f.z) < f.half + hz + margin) return false;
+        }
+        for (let i = 0; i < metroSpots.length; i++) if (rectDist(metroSpots[i].x, metroSpots[i].z, x, z, hx, hz) < 5) return false;
+        for (let i = 0; i < pathSamples.length; i++) if (rectDist(pathSamples[i].x, pathSamples[i].z, x, z, hx, hz) < 5.5) return false;
+        for (let i = 0; i < placed.length; i++) {
+          const q = placed[i];
+          if (Math.abs(x - q.x) < q.hx + hx + margin && Math.abs(z - q.z) < q.hz + hz + margin) return false;
+        }
+        return true;
+      }
+
+      // Taller near the centre and next to the big towers, lower towards the edge of the city.
+      function heightAt(x, z, scale) {
+        const r = Math.hypot(x, z);
+        let h = (9 + 17 * Math.exp(-Math.pow(r / 165, 2))) * (0.75 + rng() * 0.8);
+        let dm = 1e9;
+        for (let i = 0; i < buildingFootprints.length; i++) dm = Math.min(dm, Math.hypot(x - buildingFootprints[i].x, z - buildingFootprints[i].z));
+        h += 9 * Math.exp(-dm / 32);
+        h = Math.min(38, Math.max(7, h * scale));
+        return Math.max(2, Math.round(h / WIN_CELL_H)) * WIN_CELL_H;   // whole floors
+      }
+
+      function runPass(pitch, wMin, wMax, hScale, margin, jitter, allowTiers) {
+        const n = Math.ceil(250 / pitch);
+        for (let ix = -n; ix <= n; ix++) {
+          for (let iz = -n; iz <= n; iz++) {
+            const x = ix * pitch + (rng() - 0.5) * 2 * jitter;
+            const z = iz * pitch + (rng() - 0.5) * 2 * jitter;
+            const w = wMin + rng() * (wMax - wMin), d = wMin + rng() * (wMax - wMin);
+            if (!isFree(x, z, w / 2, d / 2, margin)) continue;
+            const h = heightAt(x, z, hScale);
+            const tiered = allowTiers && h > 16 && rng() < 0.4;
+            if (tiered) {
+              const h1 = Math.max(WIN_CELL_H, Math.round(h * 0.55 / WIN_CELL_H) * WIN_CELL_H);
+              addWindowedBox(wallB, roofB, rng, x, z, w, d, 0, h1);
+              addWindowedBox(wallB, roofB, rng, x, z, w * 0.68, d * 0.68, h1, h);
+            } else {
+              addWindowedBox(wallB, roofB, rng, x, z, w, d, 0, h);
+            }
+            placed.push({ x, z, hx: w / 2, hz: d / 2, h, w, tiered });
+          }
+        }
+      }
+      runPass(12, 8.8, 10.4, 1.0, 0.9, 0.3, true);     // main blocks laid out on a tight street grid
+      const mainCount = placed.length;
+      runPass(5.5, 3.2, 4.6, 0.55, 1.5, 0.3, false);   // small buildings in whatever space is left
+      console.log('City fill: ' + mainCount + ' mid-rises + ' + (placed.length - mainCount) + ' small buildings');
+
+      const wallMat = new THREE.MeshStandardMaterial({
+        map: tex.wall, emissiveMap: tex.glow, emissive: 0xffffff, emissiveIntensity: 0.9,
+        metalness: 0.2, roughness: 0.5
+      });
+      const roofMat = new THREE.MeshStandardMaterial({ color: 0x142038, metalness: 0.6, roughness: 0.45 });
+      const walls = new THREE.Mesh(geometryFromBuilder(wallB), wallMat);
+      const roofs = new THREE.Mesh(geometryFromBuilder(roofB), roofMat);
+      [walls, roofs].forEach((m) => { m.castShadow = true; m.receiveShadow = true; scene.add(m); });
+
+      // Glowing Neon Cyberpunk Signboards, now standing on rooftops of the new blocks
+      const neonGroup = new THREE.Group();
+      const neonColors = [0x00f0ff, 0xec4899, 0xa855f7, 0xfacc15];
+      const signSpots = [];
+      const cand = placed.slice(0, mainCount).filter((p) => !p.tiered && p.w >= 7 && Math.hypot(p.x, p.z) > 90 && Math.hypot(p.x, p.z) < 225);
+      for (let i = cand.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [cand[i], cand[j]] = [cand[j], cand[i]]; }
+      for (let i = 0; i < cand.length && signSpots.length < 25; i++) {
+        if (signSpots.every((s) => Math.hypot(s.x - cand[i].x, s.z - cand[i].z) > 28)) signSpots.push(cand[i]);
+      }
+      signSpots.forEach((p, s) => {
+        const sign = new THREE.Mesh(
+          new THREE.PlaneGeometry(6, 12),
+          new THREE.MeshBasicMaterial({ color: neonColors[s % neonColors.length], side: THREE.DoubleSide })
+        );
+        sign.position.set(p.x, p.h + 6, p.z);
+        sign.rotation.y = Math.atan2(p.x, p.z);   // faces outwards from the city centre
+        neonGroup.add(sign);
+      });
+      scene.add(neonGroup);
+    }
+
+    /* -------------------------------------------------------------
+       THE REAL INDUSTRIAL THERMAL POWER PLANT STATION
+       (3 Reactor Containment Buildings, 2 Cooling Towers, Turbine Hall, Switchyard)
+       ------------------------------------------------------------- */
+    function buildRealisticPowerPlantStation() {
+      powerComplexGroup = new THREE.Group();
+      // Place the full campus at the northern edge of the map, centered within the yellow agricultural rings.
+      powerComplexGroup.position.set(0, 0, -320);
+      powerComplexGroup.scale.setScalar(0.72);
+
+      const apronMat = new THREE.MeshStandardMaterial({ color: 0x263746, roughness: 0.88, metalness: 0.12 });
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0x9b927d, roughness: 0.8 });
+      const greenMat = new THREE.MeshStandardMaterial({ color: 0x386b4c, roughness: 1 });
+      const darkGlass = new THREE.MeshStandardMaterial({ color: 0x163746, metalness: 0.42, roughness: 0.28 });
+      const accentMat = new THREE.MeshStandardMaterial({ color: 0x76b7b4, emissive: 0x1c6665, emissiveIntensity: 0.22 });
+
+      // Layered landscaped plinth: a low edge, paving apron and planted buffer.
+      const apron = new THREE.Mesh(new THREE.BoxGeometry(160, 2.2, 140), apronMat);
+      apron.position.y = 0.8;
+      apron.receiveShadow = true;
+      powerComplexGroup.add(apron);
+      const inset = new THREE.Mesh(new THREE.BoxGeometry(153, 0.35, 133), trimMat);
+      inset.position.y = 2.05;
+      powerComplexGroup.add(inset);
+      const innerPad = new THREE.Mesh(new THREE.BoxGeometry(148, 0.28, 128), apronMat);
+      innerPad.position.y = 2.28;
+      powerComplexGroup.add(innerPad);
+
+      // Low perimeter walls and planted edge strips visually anchor the campus.
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x52636a, roughness: 0.82 });
+      [[0, -68, 160, 2], [0, 68, 160, 2], [-78, 0, 2, 136], [78, 0, 2, 136]].forEach(v => {
+        const wall = new THREE.Mesh(new THREE.BoxGeometry(v[2], 3.2, v[3]), wallMat);
+        wall.position.set(v[0], 2.9, v[1]);
+        powerComplexGroup.add(wall);
+      });
+      for (let i = 0; i < 24; i++) {
+        const a = i * Math.PI * 2 / 24;
+        const tree = new THREE.Group();
+        tree.position.set(Math.cos(a) * 70, 0, Math.sin(a) * 59);
+        const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.5, 3.4, 7), new THREE.MeshStandardMaterial({ color: 0x765238 }));
+        trunk.position.y = 1.7;
+        tree.add(trunk);
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(2.1, 10, 8), greenMat);
+        crown.position.y = 4.0;
+        tree.add(crown);
+        powerComplexGroup.add(tree);
+      }
+
+      // Three sealed containment buildings with consistent architectural cladding.
+      const reactorPositions = [
+        { x: -48, z: -34, scale: 1.0 },
+        { x: -8, z: -34, scale: 0.92 },
+        { x: 32, z: -34, scale: 0.92 }
+      ];
+      reactorPositions.forEach((rp, idx) => {
+        const reactor = new THREE.Group();
+        reactor.position.set(rp.x, 0, rp.z);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: idx === 0 ? 0x87969a : 0x788b91, roughness: 0.72, metalness: 0.16 });
+        const body = new THREE.Mesh(new THREE.CylinderGeometry(12 * rp.scale, 14 * rp.scale, 25 * rp.scale, 40), bodyMat);
+        body.position.y = 13 * rp.scale;
+        body.castShadow = true;
+        reactor.add(body);
+        const dome = new THREE.Mesh(
+          new THREE.SphereGeometry(12 * rp.scale, 40, 20, 0, Math.PI * 2, 0, Math.PI / 2),
+          new THREE.MeshStandardMaterial({ color: 0xd1d8d2, roughness: 0.62, metalness: 0.08 })
+        );
+        dome.position.y = 25 * rp.scale;
+        dome.scale.y = 0.72;
+        dome.castShadow = true;
+        reactor.add(dome);
+        const baseRing = new THREE.Mesh(
+          new THREE.CylinderGeometry(15 * rp.scale, 15 * rp.scale, 1.4, 40),
+          new THREE.MeshStandardMaterial({ color: 0x465b60, metalness: 0.28, roughness: 0.7 })
+        );
+        baseRing.position.y = 1.8;
+        reactor.add(baseRing);
+
+        // Vertical façade ribs and a restrained horizontal architectural band.
+        for (let rib = 0; rib < 16; rib++) {
+          const a = rib * Math.PI * 2 / 16;
+          const fin = new THREE.Mesh(
+            new THREE.BoxGeometry(0.55 * rp.scale, 17 * rp.scale, 1.0 * rp.scale),
+            trimMat
+          );
+          fin.position.set(Math.cos(a) * 13.15 * rp.scale, 13 * rp.scale, Math.sin(a) * 13.15 * rp.scale);
+          fin.rotation.y = -a;
+          reactor.add(fin);
+        }
+        const statusBand = new THREE.Mesh(
+          new THREE.TorusGeometry(12.35 * rp.scale, 0.22, 8, 48),
+          accentMat
+        );
+        statusBand.rotation.x = Math.PI / 2;
+        statusBand.position.y = 13 * rp.scale;
+        reactor.add(statusBand);
+
+        // Attached low operations wing with glass frontage and a planted roof.
+        const annex = new THREE.Mesh(
+          new THREE.BoxGeometry(18 * rp.scale, 8 * rp.scale, 13 * rp.scale),
+          darkGlass
+        );
+        annex.position.set(15 * rp.scale, 5 * rp.scale, 0);
+        reactor.add(annex);
+        const annexRoof = new THREE.Mesh(
+          new THREE.BoxGeometry(19 * rp.scale, 0.7, 14 * rp.scale),
+          greenMat
+        );
+        annexRoof.position.set(15 * rp.scale, 9.2 * rp.scale, 0);
+        reactor.add(annexRoof);
+        powerComplexGroup.add(reactor);
+      });
+
+      // Two unmistakable hyperbolic cooling towers, raised above the campus roofline.
+      // The larger silhouette and pale concrete finish keep them readable in the city-wide view.
+      [-42, 16].forEach((cx, idx) => {
+        const coolingGroup = new THREE.Group();
+        coolingGroup.position.set(cx, 0, 35);
+
+        const points = [];
+        for (let i = 0; i <= 40; i++) {
+          const t = i / 40;
+          const y = t * 54;
+          // Wide base, narrow waist, then a gently flared exhaust lip.
+          const r = 21.5 - 8.8 * Math.sin(t * Math.PI * 0.82) + t * 4.0;
+          points.push(new THREE.Vector2(r, y));
+        }
+        const shellMat = new THREE.MeshStandardMaterial({
+          color: idx === 0 ? 0xc0c9c5 : 0xaebbb8,
+          roughness: 0.9,
+          metalness: 0.025,
+          side: THREE.DoubleSide
+        });
+        const shell = new THREE.Mesh(new THREE.LatheGeometry(points, 56), shellMat);
+        shell.position.y = 2.5;
+        shell.castShadow = true;
+        shell.receiveShadow = true;
+        coolingGroup.add(shell);
+
+        // Strong, visible upper rim and reinforced lower concrete ring.
+        const topRim = new THREE.Mesh(
+          new THREE.TorusGeometry(16.8, 0.9, 12, 56),
+          new THREE.MeshStandardMaterial({ color: 0xe0e4dc, roughness: 0.78 })
+        );
+        topRim.rotation.x = Math.PI / 2;
+        topRim.position.y = 56.5;
+        coolingGroup.add(topRim);
+        const baseRing = new THREE.Mesh(
+          new THREE.TorusGeometry(21.0, 0.75, 10, 56),
+          new THREE.MeshStandardMaterial({ color: 0x899895, roughness: 0.86 })
+        );
+        baseRing.rotation.x = Math.PI / 2;
+        baseRing.position.y = 3.1;
+        coolingGroup.add(baseRing);
+
+        // Subtle vertical concrete ribs add scale without making the towers look mechanical.
+        for (let rib = 0; rib < 20; rib++) {
+          const a = rib * Math.PI * 2 / 20;
+          const ribMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(0.34, 28, 0.42),
+            new THREE.MeshStandardMaterial({ color: 0x9aa8a4, roughness: 0.92 })
+          );
+          ribMesh.position.set(Math.cos(a) * 19.6, 16.5, Math.sin(a) * 19.6);
+          ribMesh.rotation.y = -a;
+          coolingGroup.add(ribMesh);
+        }
+
+        // Soft, pale water-vapour plume above each tower (not smoke).
+        const vapourMat = new THREE.MeshBasicMaterial({
+          color: 0xe7f0ef, transparent: true, opacity: 0.19, depthWrite: false
+        });
+        [
+          { x: 0, y: 61, z: 0, sx: 1.0, sy: 1.0, sz: 0.95 },
+          { x: -3.2, y: 65, z: 0.8, sx: 1.15, sy: 0.9, sz: 1.05 },
+          { x: 2.8, y: 69, z: -0.5, sx: 1.35, sy: 1.0, sz: 1.15 }
+        ].forEach(v => {
+          const cloud = new THREE.Mesh(new THREE.SphereGeometry(6.2, 16, 12), vapourMat);
+          cloud.position.set(v.x, v.y, v.z);
+          cloud.scale.set(v.sx, v.sy, v.sz);
+          coolingGroup.add(cloud);
+        });
+
+        powerComplexGroup.add(coolingGroup);
+      });
+
+      // Turbine hall: stepped industrial volume with clerestory glazing and roof ribs.
+      const hall = new THREE.Mesh(new THREE.BoxGeometry(65, 18, 30), darkGlass);
+      hall.position.set(-18, 10, -2);
+      hall.castShadow = true;
+      powerComplexGroup.add(hall);
+      const hallRoof = new THREE.Mesh(
+        new THREE.BoxGeometry(69, 2.2, 34),
+        new THREE.MeshStandardMaterial({ color: 0x71868a, roughness: 0.5, metalness: 0.25 })
+      );
+      hallRoof.position.set(-18, 20, -2);
+      powerComplexGroup.add(hallRoof);
+      for (let x = -45; x <= 9; x += 9) {
+        const window = new THREE.Mesh(new THREE.BoxGeometry(4.5, 8, 0.35), accentMat);
+        window.position.set(x, 10, 13.2);
+        powerComplexGroup.add(window);
+      }
+
+      // Compact transformer court, visually screened by low landscaping.
+      const yard = new THREE.Mesh(
+        new THREE.BoxGeometry(48, 0.5, 38),
+        new THREE.MeshStandardMaterial({ color: 0x394b52, roughness: 0.95 })
+      );
+      yard.position.set(48, 2.55, 0);
+      powerComplexGroup.add(yard);
+      for (let tx = 0; tx < 3; tx++) {
+        const transformer = new THREE.Mesh(
+          new THREE.BoxGeometry(8, 6, 9),
+          new THREE.MeshStandardMaterial({ color: 0x9b9b8a, metalness: 0.22, roughness: 0.62 })
+        );
+        transformer.position.set(34 + tx * 14, 5.8, -7);
+        powerComplexGroup.add(transformer);
+        for (let b = -2; b <= 2; b += 4) {
+          const bushing = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.35, 0.48, 3.5, 8),
+            new THREE.MeshStandardMaterial({ color: 0xc4b58b, roughness: 0.4 })
+          );
+          bushing.position.set(34 + tx * 14 + b, 10.4, -7);
+          powerComplexGroup.add(bushing);
+        }
+      }
+
+      // Campus access road, planted medians and restrained wayfinding lights.
+      const road = new THREE.Mesh(
+        new THREE.BoxGeometry(12, 0.18, 78),
+        new THREE.MeshStandardMaterial({ color: 0x18262d, roughness: 0.95 })
+      );
+      road.position.set(0, 2.48, 27);
+      powerComplexGroup.add(road);
+      for (let i = 0; i < 9; i++) {
+        const dash = new THREE.Mesh(
+          new THREE.BoxGeometry(0.35, 0.05, 4),
+          new THREE.MeshBasicMaterial({ color: 0xd6c99e })
+        );
+        dash.position.set(0, 2.61, -8 + i * 8);
+        powerComplexGroup.add(dash);
+      }
+      for (let i = 0; i < 10; i++) {
+        const a = i * Math.PI * 2 / 10;
+        const light = new THREE.PointLight(0xd6c99e, 0.45, 22);
+        light.position.set(Math.cos(a) * 61, 7, Math.sin(a) * 53);
+        powerComplexGroup.add(light);
+      }
+
+      scene.add(powerComplexGroup);
+    }
+
+    /* -------------------------------------------------------------
+       COMPLETE INTERACTIVE SUBTERRANEAN TRANSIT SYSTEM (Y = -24)
+       (Cutaway Visible, Radial Vacuum Tubes, Animated Maglev Trains)
+       ------------------------------------------------------------- */
+    function buildInteractiveSubterraneanTransit() {
+      subterraneanGroup = new THREE.Group();
+      subterraneanGroup.position.set(0, 0, 0);
+
+      // 1. CENTRAL GRAND INTERCHANGE STATION (At Y = -24)
+      const mainStationGroup = new THREE.Group();
+      mainStationGroup.position.set(0, -24, 0);
+
+      const deckGeo = new THREE.BoxGeometry(80, 2.5, 110);
+      const deckMat = new THREE.MeshStandardMaterial({ color: 0x0d1527, metalness: 0.85, roughness: 0.3 });
+      const deck = new THREE.Mesh(deckGeo, deckMat);
+      mainStationGroup.add(deck);
+
+      // Glowing Cyan Platform Tactile Bands
+      [-38, 38].forEach(ex => {
+        const edgeGeo = new THREE.BoxGeometry(1.2, 0.2, 110);
+        const edgeMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+        const edge = new THREE.Mesh(edgeGeo, edgeMat);
+        edge.position.set(ex, 1.35, 0);
+        mainStationGroup.add(edge);
+      });
+
+      // Illuminated Station Pillars
+      for (let px = -28; px <= 28; px += 28) {
+        for (let pz = -42; pz <= 42; pz += 28) {
+          const colGeo = new THREE.BoxGeometry(3, 14, 3);
+          const colMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 });
+          const col = new THREE.Mesh(colGeo, colMat);
+          col.position.set(px, 7, pz);
+          mainStationGroup.add(col);
+
+          const stripGeo = new THREE.BoxGeometry(0.5, 14, 0.5);
+          const stripMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+          const strip = new THREE.Mesh(stripGeo, stripMat);
+          strip.position.set(px, 7, pz + 1.55);
+          mainStationGroup.add(strip);
+        }
+      }
+
+      // Dual High-Speed Vacuum Guide-Rails
+      [-20, 20].forEach(tx => {
+        const trackBedGeo = new THREE.BoxGeometry(8, 0.8, 140);
+        const trackBedMat = new THREE.MeshStandardMaterial({ color: 0x050811, metalness: 0.95 });
+        const trackBed = new THREE.Mesh(trackBedGeo, trackBedMat);
+        trackBed.position.set(tx, 0.8, 0);
+        mainStationGroup.add(trackBed);
+
+        const magRailGeo = new THREE.BoxGeometry(0.5, 0.5, 140);
+        const magRailMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+        const railL = new THREE.Mesh(magRailGeo, magRailMat);
+        railL.position.set(tx - 3.2, 1.4, 0);
+        mainStationGroup.add(railL);
+
+        const railR = new THREE.Mesh(magRailGeo, magRailMat);
+        railR.position.set(tx + 3.2, 1.4, 0);
+        mainStationGroup.add(railR);
+      });
+
+      // Escalator Shafts to Surface
+      [-12, 12].forEach(ex => {
+        const escGeo = new THREE.BoxGeometry(4.5, 28, 7);
+        const escMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, wireframe: true });
+        const esc = new THREE.Mesh(escGeo, escMat);
+        esc.position.set(ex, 14, 0);
+        esc.rotation.x = 0.52;
+        mainStationGroup.add(esc);
+      });
+
+      subterraneanGroup.add(mainStationGroup);
+
+      // 2. RADIAL VACUUM TRANSIT TUBES CONNECTING CENTRAL HUB TO ALL 12 DISTRICTS
+      DISTRICTS_DATA.forEach((district, dIdx) => {
+        const rad = (district.angle * Math.PI) / 180;
+        const cx = district.dist * Math.cos(rad);
+        const cz = district.dist * Math.sin(rad);
+
+        // Subterranean Station Platform at each District (At Y = -24)
+        const dStationGroup = new THREE.Group();
+        dStationGroup.position.set(cx, -24, cz);
+
+        const dDeckGeo = new THREE.BoxGeometry(40, 2.2, 40);
+        const dDeckMat = new THREE.MeshStandardMaterial({ color: 0x111c33, metalness: 0.8 });
+        const dDeck = new THREE.Mesh(dDeckGeo, dDeckMat);
+        dStationGroup.add(dDeck);
+
+        // District Station Holographic Nameplate
+        const dSignGeo = new THREE.PlaneGeometry(16, 4);
+        const dSignMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, side: THREE.DoubleSide });
+        const dSign = new THREE.Mesh(dSignGeo, dSignMat);
+        dSign.position.set(0, 8, 0);
+        dStationGroup.add(dSign);
+
+        // Escalator tube rising from -24m to surface portal
+        const dEscGeo = new THREE.BoxGeometry(3.5, 27, 4.5);
+        const dEscMat = new THREE.MeshStandardMaterial({ color: 0x334155, wireframe: true });
+        const dEsc = new THREE.Mesh(dEscGeo, dEscMat);
+        dEsc.position.set(12, 13, 12);
+        dEsc.rotation.x = 0.5;
+        dStationGroup.add(dEsc);
+
+        districtUndergroundStations.push({ name: district.name, pos: { x: cx, y: -22, z: cz } });
+        subterraneanGroup.add(dStationGroup);
+
+        // High-Speed Transparent Vacuum Tube Tunnel
+        const tubeCurve = new THREE.LineCurve3(
+          new THREE.Vector3(0, -24, 0),
+          new THREE.Vector3(cx, -24, cz)
+        );
+        const tubeGeo = new THREE.TubeGeometry(tubeCurve, 24, 3.2, 10, false);
+        const tubeMat = new THREE.MeshStandardMaterial({
+          color: 0x0284c7,
+          metalness: 0.85,
+          roughness: 0.15,
+          transparent: true,
+          opacity: 0.45
+        });
+        const tube = new THREE.Mesh(tubeGeo, tubeMat);
+        subterraneanGroup.add(tube);
+
+        // Glowing Guide-rail Line inside Tube
+        const railCurve = new THREE.TubeGeometry(tubeCurve, 24, 0.35, 6, false);
+        const railMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+        const rail = new THREE.Mesh(railCurve, railMat);
+        subterraneanGroup.add(rail);
+
+        // 3. AERODYNAMIC MAGLEV TRAIN CAPSULES TRAVELING IN VACUUM TUBES
+        const trainGeo = new THREE.BoxGeometry(3.6, 3.0, 14);
+        const trainMat = new THREE.MeshStandardMaterial({
+          color: 0xf8fafc,
+          metalness: 0.9,
+          roughness: 0.2,
+          emissive: 0x00f0ff,
+          emissiveIntensity: 0.35
+        });
+        const trainMesh = new THREE.Mesh(trainGeo, trainMat);
+        trainMesh.position.set(0, -23.0, 0);
+
+        // Cyan Headlight Lens
+        const headGeo = new THREE.ConeGeometry(1.6, 2.5, 8);
+        const headMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.rotation.x = Math.PI / 2;
+        head.position.z = 7.5;
+        trainMesh.add(head);
+
+        subterraneanGroup.add(trainMesh);
+
+        trains.push({
+          mesh: trainMesh,
+          startPos: new THREE.Vector3(0, -23.0, 0),
+          endPos: new THREE.Vector3(cx, -23.0, cz),
+          progress: (dIdx / 12),
+          speed: 0.004 + (dIdx % 3) * 0.0015,
+          direction: 1
+        });
+      });
+
+      // 4. DEEP SUBTERRANEAN FREIGHT CAPSULES AT -45m
+      const freightRingCurve = new THREE.EllipseCurve(0, 0, 180, 180, 0, 2 * Math.PI, false, 0);
+      const points = freightRingCurve.getPoints(64).map(p => new THREE.Vector3(p.x, -45, p.y));
+      const freightPath = new THREE.CatmullRomCurve3(points, true);
+      const freightTubeGeo = new THREE.TubeGeometry(freightPath, 64, 4.2, 8, true);
+      const freightTubeMat = new THREE.MeshStandardMaterial({
+        color: 0x10b981,
+        transparent: true,
+        opacity: 0.35,
+        wireframe: true
+      });
+      const freightTube = new THREE.Mesh(freightTubeGeo, freightTubeMat);
+      subterraneanGroup.add(freightTube);
+
+      scene.add(subterraneanGroup);
+    }
+
+    /* -------------------------------------------------------------
+       THE GRAND OASIS MEGAMALL 2077
+       ------------------------------------------------------------- */
+    function buildGrandOasisMall() {
+      mallGroup = new THREE.Group();
+      mallGroup.position.set(115, 0, 60);
+
+      // Aerodynamic Curved Glass Canopy
+      const canopyGeo = new THREE.CylinderGeometry(24, 28, 14, 32, 1, false, 0, Math.PI * 1.5);
+      const canopyMat = new THREE.MeshStandardMaterial({
+        color: 0x0284c7,
+        roughness: 0.15,
+        metalness: 0.9,
+        transparent: true,
+        opacity: 0.85,
+        emissive: 0x00f0ff,
+        emissiveIntensity: 0.2
+      });
+      const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+      canopy.position.y = 7;
+      mallGroup.add(canopy);
+
+      // Terraced Exterior Retail Decks
+      const deckGeo = new THREE.CylinderGeometry(30, 32, 2.5, 32);
+      const deckMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.8 });
+      const deck = new THREE.Mesh(deckGeo, deckMat);
+      deck.position.y = 1.25;
+      mallGroup.add(deck);
+
+      // Giant Holographic Sign: "OASIS MEGAMALL 2077"
+      const signGeo = new THREE.PlaneGeometry(28, 5);
+      const signMat = new THREE.MeshBasicMaterial({ color: 0xec4899, side: THREE.DoubleSide });
+      const sign = new THREE.Mesh(signGeo, signMat);
+      sign.position.set(0, 18, 18);
+      mallGroup.add(sign);
+
+      scene.add(mallGroup);
+    }
+
+    /* -------------------------------------------------------------
+       SPECIAL WATER PURIFICATION TOWER
+       ------------------------------------------------------------- */
+    function buildWaterCleaningTower() {
+      waterTowerGroup = new THREE.Group();
+      waterTowerGroup.position.set(-70, 0, 95);
+
+      const basinGeo = new THREE.CylinderGeometry(9, 10, 3, 8);
+      const basinMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.85 });
+      const basin = new THREE.Mesh(basinGeo, basinMat);
+      basin.position.y = 1.5;
+      waterTowerGroup.add(basin);
+
+      const towerGeo = new THREE.CylinderGeometry(5.5, 6.5, 26, 16);
+      const towerMat = new THREE.MeshStandardMaterial({
+        color: 0x0369a1,
+        metalness: 0.8,
+        roughness: 0.2,
+        emissive: 0x00f0ff,
+        emissiveIntensity: 0.35
+      });
+      const tower = new THREE.Mesh(towerGeo, towerMat);
+      tower.position.y = 16;
+      waterTowerGroup.add(tower);
+
+      for (let r = 0; r < 4; r++) {
+        const ringGeo = new THREE.TorusGeometry(7.2, 0.45, 8, 24);
+        const ringMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = Math.PI / 2;
+        ring.position.y = 8 + r * 6;
+        waterTowerGroup.add(ring);
+      }
+
+      const beaconGeo = new THREE.SphereGeometry(2.2, 16, 16);
+      const beaconMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+      const beacon = new THREE.Mesh(beaconGeo, beaconMat);
+      beacon.position.y = 31;
+      waterTowerGroup.add(beacon);
+
+      scene.add(waterTowerGroup);
+    }
+
+    /* -------------------------------------------------------------
+       THE GREEN PATH CONTINUOUS BIOPHILIC RIBBON
+       ------------------------------------------------------------- */
+    function buildTheGreenPathRibbon() {
+      greenPathGroup = new THREE.Group();
+
+      const pathPoints = [
+        new THREE.Vector3(0, 1.2, 210),      // Yunusobod (North)
+        new THREE.Vector3(-103, 1.2, 147),   // Olmazor (NW)
+        new THREE.Vector3(-95, 1.2, 55),     // Shayxontohur (W-Inner)
+        new THREE.Vector3(-210, 1.2, 0),     // Uchtepa (West)
+        new THREE.Vector3(-164, 1.2, -115),  // Chilonzor (SW)
+        new THREE.Vector3(-71, 1.2, -84),    // Yakkasaroy (S-Inner)
+        new THREE.Vector3(-115, 1.2, -199),  // Yangihayot (SSW)
+        new THREE.Vector3(0, 1.2, -220),     // Sergeli (South)
+        new THREE.Vector3(132, 1.2, -188),   // Bektemir (SE)
+        new THREE.Vector3(100, 1.2, -58),    // Mirobod (SE-Inner)
+        new THREE.Vector3(208, 1.2, 56),     // Yashnobod (East)
+        new THREE.Vector3(148, 1.2, 148),    // Mirzo Ulug‘bek (NE)
+        new THREE.Vector3(0, 1.2, 210)       // Loop closure
+      ];
+
+      const curve = new THREE.CatmullRomCurve3(pathPoints, true);
+      greenPathCurve = curve;
+      const ribbonGeo = new THREE.TubeGeometry(curve, 140, 3.8, 8, true);
+      const ribbonMat = new THREE.MeshStandardMaterial({
+        color: 0x059669,
+        roughness: 0.65,
+        metalness: 0.1,
+        emissive: 0x10b981,
+        emissiveIntensity: 0.35
+      });
+      const greenRibbon = new THREE.Mesh(ribbonGeo, ribbonMat);
+      greenRibbon.scale.y = 0.22;
+      greenPathGroup.add(greenRibbon);
+
+      const edgeGeo = new THREE.TubeGeometry(curve, 140, 0.5, 6, true);
+      const edgeMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+      const edgeLine = new THREE.Mesh(edgeGeo, edgeMat);
+      greenPathGroup.add(edgeLine);
+
+      scene.add(greenPathGroup);
+    }
+
+    /* -------------------------------------------------------------
+       SMALL GLASS METRO ENTRANCES AT SURFACE
+       ------------------------------------------------------------- */
+    function buildSmallMetroEntrances() {
+      const metroEntranceGroup = new THREE.Group();
+
+      DISTRICTS_DATA.forEach((district) => {
+        const rad = (district.angle * Math.PI) / 180;
+        const cx = district.dist * Math.cos(rad);
+        const cz = district.dist * Math.sin(rad);
+
+        const portalGeo = new THREE.BoxGeometry(4.5, 3.2, 4.5);
+        const portalMat = new THREE.MeshStandardMaterial({
+          color: 0x0284c7,
+          metalness: 0.85,
+          transparent: true,
+          opacity: 0.75,
+          emissive: 0x00f0ff,
+          emissiveIntensity: 0.35
+        });
+        const portal = new THREE.Mesh(portalGeo, portalMat);
+        portal.position.set(cx + 12, 1.6, cz + 12);
+        metroEntranceGroup.add(portal);
+
+        const mGeo = new THREE.PlaneGeometry(1.6, 1.6);
+        const mMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff, side: THREE.DoubleSide });
+        const mSign = new THREE.Mesh(mGeo, mMat);
+        mSign.position.set(cx + 12, 3.4, cz + 14.3);
+        metroEntranceGroup.add(mSign);
+      });
+
+      scene.add(metroEntranceGroup);
+    }
+
+    function buildStarDustParticles() {
+      const starGeo = new THREE.BufferGeometry();
+      const count = 1400;
+      const positions = new Float32Array(count * 3);
+      for (let i = 0; i < count * 3; i += 3) {
+        positions[i] = (Math.random() - 0.5) * 2600;
+        positions[i + 1] = Math.random() * 900 + 40;
+        positions[i + 2] = (Math.random() - 0.5) * 2600;
+      }
+      starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const starMat = new THREE.PointsMaterial({
+        color: 0x00f0ff,
+        size: 2.0,
+        transparent: true,
+        opacity: 0.55
+      });
+      const starField = new THREE.Points(starGeo, starMat);
+      scene.add(starField);
+    }
+
+    /* -------------------------------------------------------------
+       CAMERA SLIDE PRESETS & GSAP ANIMATIONS (12 SLIDES)
+       ------------------------------------------------------------- */
+    const CAMERA_SLIDE_CONFIGS = [
+      // 01: The Vision (Majestic City Overview)
+      { pos: { x: 420, y: 260, z: 480 }, target: { x: 0, y: 30, z: 0 } },
+      // 02: Urban Paradigm Shift (Elevated High-Angle Urban Boundary)
+      { pos: { x: 0, y: 520, z: 400 }, target: { x: 0, y: 0, z: 0 } },
+      // 03: Trapezoid Morphology & Base Area (Elevated 3/4 Panoramic Cluster Framing)
+      { pos: { x: 95, y: 110, z: 295 }, target: { x: 0, y: 35, z: 210 } },
+      // 04: Everyday Schools & Clinics (Mid-Rise & Tower Atrium Perspective)
+      { pos: { x: -85, y: 115, z: 280 }, target: { x: 0, y: 25, z: 210 } },
+      // 05: Zero-Car Subterranean Transit (Elevated Cutaway into -24m Maglev Hall)
+      { pos: { x: 75, y: 45, z: 95 }, target: { x: 0, y: -24, z: 0 } },
+      // 06: Earthquake Resilience & Seismic Shield (Ground-Decoupling Foundation View)
+      { pos: { x: 75, y: 50, z: 270 }, target: { x: 0, y: 20, z: 210 } },
+      // 07: Central Industrial Energy Station (Elevated view of all reactor containment buildings & cooling towers)
+      { pos: { x: 90, y: 155, z: -470 }, target: { x: 0, y: 25, z: -320 } },
+      // 08: Golden Wheat Agro-Belt & Food Sovereignty (Wide Outer Agrarian Ring View)
+      { pos: { x: 440, y: 320, z: 260 }, target: { x: 0, y: 0, z: 0 } },
+      // 09: Circular Water & Central Green Park (Diagonal River Sweep NE to SW)
+      { pos: { x: 105, y: 80, z: 95 }, target: { x: 0, y: 5, z: 0 } },
+      // 10: Interactive 3D City & Subterranean Explorer (Free-Fly Horizon View)
+      { pos: { x: 380, y: 220, z: 400 }, target: { x: 0, y: 25, z: 0 } },
+      // 11: Demographic & Civic Ledger (High Isometric Survey)
+      { pos: { x: 300, y: 380, z: 300 }, target: { x: 0, y: 20, z: 0 } },
+      // 12: Scientific References (Cinematic Ambient Pan)
+      { pos: { x: 400, y: 290, z: 400 }, target: { x: 0, y: 20, z: 0 } }
+    ];
+
+    function animateCameraTo(targetPos, targetLookAt, duration = 1.8) {
+      if (typeof gsap === 'undefined') return;
+
+      gsap.to(camera.position, {
+        x: targetPos.x,
+        y: targetPos.y,
+        z: targetPos.z,
+        duration: duration,
+        ease: 'power2.inOut'
+      });
+
+      gsap.to(controls.target, {
+        x: targetLookAt.x,
+        y: targetLookAt.y,
+        z: targetLookAt.z,
+        duration: duration,
+        ease: 'power2.inOut',
+        onUpdate: () => controls.update()
+      });
+    }
+
+    function onWindowResize() {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+
+    function onCanvasClick(event) {
+      if (currentSlideIndex !== 9) return; // Active on Slide 10
+
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      const intersects = raycaster.intersectObjects(megastructureMeshes);
+      if (intersects.length > 0) {
+        const d = intersects[0].object.userData;
+        if (d && d.megaName) {
+          sfx.clickPop();
+          showBuildingInspectionCard(d);
+          const p = d.worldPos;
+          animateCameraTo(
+            { x: p.x + 65, y: 55, z: p.z + 65 },
+            { x: p.x, y: 25, z: p.z },
+            1.4
+          );
+        }
+      }
+    }
+
+    function showBuildingInspectionCard(d) {
+      const card = document.getElementById('explorer-card');
+      const body = document.getElementById('explorer-card-body');
+      
+      // If minimized, restore body view
+      card.classList.remove('minimized');
+      const minBtn = document.getElementById('btn-minimize-card');
+      if (minBtn) minBtn.innerText = '—';
+
+      document.getElementById('card-badge').innerText = `${d.districtName.toUpperCase()} • ${d.megaName}`;
+      document.getElementById('card-name').innerText = d.megaName;
+      document.getElementById('card-desc').innerText = `Wide trapezoid housing ${d.megaCap}. District facilities: ${d.facilities}.`;
+      document.getElementById('card-base-area').innerText = d.baseArea || `~270,000 m² (27 ha)`;
+      document.getElementById('card-mega-cap').innerText = d.megaCap;
+      document.getElementById('card-dist-pop').innerText = d.districtPop;
+      document.getElementById('card-dimensions').innerText = `${d.height} / ${d.baseWidth}`;
+      card.classList.add('active');
+    }
+
+    function toggleCardMinimize() {
+      sfx.clickPop();
+      const card = document.getElementById('explorer-card');
+      const isMin = card.classList.toggle('minimized');
+      const btn = document.getElementById('btn-minimize-card');
+      if (btn) btn.innerText = isMin ? '+' : '—';
+    }
+
+    function closeInspectionCard() {
+      sfx.clickPop();
+      document.getElementById('explorer-card').classList.remove('active');
+    }
+
+    /* -------------------------------------------------------------
+       RENDER LOOP: PARTICLES, TRAINS & CONTROLS
+       ------------------------------------------------------------- */
+    function renderLoop() {
+      requestAnimationFrame(renderLoop);
+
+      const time = Date.now() * 0.001;
+
+      // 1. Ambient slow drift when not dragging
+      if (currentSlideIndex === 0 && !controls.enabled) {
+        const driftTime = Date.now() * 0.00012;
+        camera.position.x = 420 * Math.cos(driftTime) + 40 * Math.sin(driftTime * 0.5);
+        camera.position.z = 420 * Math.sin(driftTime) + 40 * Math.cos(driftTime * 0.5);
+        camera.lookAt(0, 30, 0);
+      }
+
+      // 2. Animate flowing river highlights through the central park
+      waterFlowGroups.forEach(group => {
+        const curve = group.userData.curve;
+        group.children.forEach(dash => {
+          dash.userData.flowT = (dash.userData.flowT + 0.0018) % 1;
+          const pt = curve.getPointAt(dash.userData.flowT);
+          dash.position.set(pt.x, pt.y + 0.25, pt.z);
+        });
+      });
+
+      // 3. Animate Cooling Tower Steam Billows
+      steamParticles.forEach(s => {
+        s.position.y += s.userData.speedY;
+        s.position.x += s.userData.driftX * 0.3;
+        s.scale.addScalar(0.018);
+        if (s.position.y > s.userData.maxHeight) {
+          s.position.y = s.userData.initialY;
+          s.position.x = s.userData.baseX + (Math.random() - 0.5) * 6;
+          s.scale.set(1, 1, 1);
+        }
+      });
+
+      // 4. Flashing Red Aviation Obstruction Beacons
+      const flash = (Math.sin(time * 4) > 0.3);
+      aviationBeacons.forEach(b => {
+        b.material.color.setHex(flash ? 0xff1111 : 0x330000);
+      });
+
+      // 5. Animate Maglev Train Capsules in Vacuum Tubes
+      if (isTrainsMoving) {
+        trains.forEach(t => {
+          t.progress += t.speed * t.direction;
+          if (t.progress >= 1.0) {
+            t.progress = 1.0;
+            t.direction = -1;
+          } else if (t.progress <= 0.0) {
+            t.progress = 0.0;
+            t.direction = 1;
+          }
+
+          t.mesh.position.lerpVectors(t.startPos, t.endPos, t.progress);
+          t.mesh.lookAt(t.direction === 1 ? t.endPos : t.startPos);
+        });
+      }
+
+      if (controls.enabled) {
+        controls.update();
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    /* ===========================================================
+       5. INTERACTIVE 3D EXPLORER & DISTRICT REDIRECTION (Slide 10)
+       =========================================================== */
+    function initDistrictRedirectNav() {
+      const container = document.getElementById('district-nav-bar');
+      if (!container) return;
+
+      DISTRICTS_DATA.forEach((district, idx) => {
+        const btn = document.createElement('button');
+        btn.className = `d-nav-btn ${idx === 0 ? 'active' : ''}`;
+        btn.innerText = district.name;
+        btn.addEventListener('click', () => {
+          sfx.clickPop();
+          document.querySelectorAll('.d-nav-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          redirectCameraToDistrict(district);
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function redirectCameraToDistrict(d) {
+      const rad = (d.angle * Math.PI) / 180;
+      const cx = d.dist * Math.cos(rad);
+      const cz = d.dist * Math.sin(rad);
+
+      // Radial unit vectors for elevated 3/4 panoramic perspective
+      const ux = Math.cos(rad);
+      const uz = Math.sin(rad);
+
+      if (isUndergroundMode) {
+        // Elevated angle looking down onto that district's -24m underground platform
+        animateCameraTo(
+          { x: cx + 32, y: -12, z: cz + 32 },
+          { x: cx, y: -22, z: cz },
+          1.6
+        );
+        showBuildingInspectionCard({
+          districtName: d.name,
+          districtPop: `${d.pop} Million`,
+          megaName: `${d.name} Metro Terminal (-24m)`,
+          megaCap: `Maglev Interchange & Freight`,
+          facilities: `Direct escalator tubes to surface plazas, automated vacuum loop connection to central station.`,
+          height: "-24m depth",
+          baseWidth: "40m platform",
+          baseArea: "Subterranean Node"
+        });
+      } else {
+        // Elevated panoramic perspective capturing all 10 megastructures and surrounding mid-rises
+        const camX = cx + ux * 65 - uz * 65;
+        const camZ = cz + uz * 65 + ux * 65;
+        animateCameraTo(
+          { x: camX, y: 85, z: camZ },
+          { x: cx, y: 22, z: cz },
+          1.6
+        );
+        showBuildingInspectionCard({
+          districtName: d.name,
+          districtPop: `${d.pop} Million`,
+          megaName: `${d.name} Core Sector`,
+          megaCap: `~${d.megaPop.toLocaleString()} per frustum (10 total)`,
+          facilities: d.facilities,
+          height: "280–340m",
+          baseWidth: `${d.baseW}m per side`,
+          baseArea: `~${d.baseArea.toLocaleString()} m² (${(d.baseArea / 10000).toFixed(1)} ha)`
+        });
+      }
+    }
+
+    function setCameraPreset(mode) {
+      sfx.clickPop();
+      const webglContainer = document.getElementById('webgl-canvas-container');
+
+      if (mode === 'orbit') {
+        setXRayOpacity(100);
+        document.getElementById('xray-opacity-slider').value = 100;
+        document.getElementById('xray-val-label').innerText = '100%';
+        isUndergroundMode = false;
+        animateCameraTo({ x: 380, y: 220, z: 400 }, { x: 0, y: 25, z: 0 });
+      } else if (mode === 'centralPark') {
+        setXRayOpacity(100);
+        isUndergroundMode = false;
+        // Elevated diagonal view showing natural river path, footbridges, flower bedding, and fountain
+        animateCameraTo({ x: 90, y: 65, z: 90 }, { x: 0, y: 4, z: 0 });
+      } else if (mode === 'undergroundStation') {
+        isUndergroundMode = true;
+        setXRayOpacity(20);
+        document.getElementById('xray-opacity-slider').value = 20;
+        document.getElementById('xray-val-label').innerText = '20%';
+        controls.enabled = true;
+        webglContainer.classList.add('interactive-mode');
+
+        // Elevated isometric view into subterranean terminal without clipping through walls
+        animateCameraTo({ x: 55, y: -2, z: 65 }, { x: 0, y: -22, z: 0 }, 1.8);
+
+        showBuildingInspectionCard({
+          districtName: "Central Subterranean Hub",
+          districtPop: "Citywide Transit",
+          megaName: "Maglev Concourse -24m",
+          megaCap: "90s Headway Loops",
+          facilities: "Twin Vacuum Maglev Tracks, Escalator Shafts to Surface, Automated Freight (-45m)",
+          height: "Depth: -24m to -45m",
+          baseWidth: "12 Radial Tubes",
+          baseArea: "Multi-Tier Subterranean Hub"
+        });
+      } else if (mode === 'thermalPowerPlant') {
+        setXRayOpacity(100);
+        isUndergroundMode = false;
+        controls.enabled = true;
+        webglContainer.classList.add('interactive-mode');
+
+        // Elevated high angle framing reactor containment buildings, cooling towers, and switchyard
+        animateCameraTo({ x: 90, y: 155, z: -470 }, { x: 0, y: 25, z: -320 }, 1.8);
+
+        showBuildingInspectionCard({
+          districtName: "Industrial Perimeter",
+          districtPop: "Conceptual nuclear generation campus",
+          megaName: "Central Industrial Power Station",
+          megaCap: "Generation-IV SMR + Turbines",
+          facilities: "3 reinforced reactor containment buildings, turbine halls, 2 cooling towers, high-voltage switchyard",
+          height: "Reactor buildings: conceptual 45–60m",
+          baseWidth: "160m Industrial Apron",
+          baseArea: "~22,400 m² Apron"
+        });
+      } else if (mode === 'mall') {
+        setXRayOpacity(100);
+        isUndergroundMode = false;
+        controls.enabled = true;
+        webglContainer.classList.add('interactive-mode');
+
+        // Elevated 3/4 cinematic angle framing curved glass canopy, decks, and glowing sign
+        animateCameraTo({ x: 175, y: 45, z: 120 }, { x: 115, y: 12, z: 60 }, 1.6);
+
+        showBuildingInspectionCard({
+          districtName: "Central Commercial Node",
+          districtPop: "Inter-District Hub",
+          megaName: "Oasis Megamall 2077",
+          megaCap: "Multi-Level Retail Core",
+          facilities: "Curved Aerodynamic Glass Canopy, Holographic Plaza, Terraced Retail Decks, Maglev Portal",
+          height: "30m Canopy",
+          baseWidth: "64m Exterior Decks",
+          baseArea: "~8,000 m² Plaza"
+        });
+      } else if (mode === 'waterTower') {
+        setXRayOpacity(100);
+        isUndergroundMode = false;
+        controls.enabled = true;
+        webglContainer.classList.add('interactive-mode');
+
+        // Elevated framing for water filtration tower
+        animateCameraTo({ x: -30, y: 42, z: 135 }, { x: -70, y: 16, z: 95 }, 1.6);
+
+        showBuildingInspectionCard({
+          districtName: "Hydrological Core",
+          districtPop: "94% Citywide Recovery",
+          megaName: "Hydro-Purity Tower 2077",
+          megaCap: "Closed-Loop Bioreactors",
+          facilities: "Octagonal Intake Basin, Nanofiltration Ring Conduits, Dual-Pipe Greywater Infrastructure",
+          height: "32m Tower",
+          baseWidth: "20m Intake Basin",
+          baseArea: "Water Reclamation Node"
+        });
+      }
+    }
+
+    function setXRayOpacity(val) {
+      const opacity = parseFloat(val) / 100.0;
+      document.getElementById('xray-val-label').innerText = `${val}%`;
+
+      if (urbanBaseMat) {
+        urbanBaseMat.opacity = Math.max(0.08, opacity);
+        urbanBaseMat.depthWrite = (opacity > 0.85);
+        urbanBaseMat.needsUpdate = true;
+      }
+      if (wheatBeltMat) {
+        wheatBeltMat.opacity = Math.max(0.12, opacity);
+        wheatBeltMat.depthWrite = (opacity > 0.85);
+        wheatBeltMat.needsUpdate = true;
+      }
+      groundFurrows.forEach(f => {
+        f.material.opacity = 0.35 * opacity;
+      });
+    }
+
+    function toggleTrainAnimation() {
+      sfx.clickPop();
+      isTrainsMoving = !isTrainsMoving;
+      document.getElementById('train-btn-label').innerText = isTrainsMoving ? "Pause Maglev" : "Resume Maglev";
+    }
+
+    /* -------------------------------------------------------------
+       GENERIC DRAGGABLE HELPER (MOUSE + TOUCH WITH BOUNDARY CLAMPING)
+       ------------------------------------------------------------- */
+    function makeElementDraggable(element, handle) {
+      if (!element || !handle) return;
+
+      let isDragging = false;
+      let startX, startY, initialLeft, initialTop;
+
+      function onStart(e) {
+        // Prevent drag on buttons or sliders
+        if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT' || e.target.closest('button')) {
+          return;
+        }
+
+        isDragging = true;
+        element.classList.add('dragging');
+
+        const rect = element.getBoundingClientRect();
+        initialLeft = rect.left;
+        initialTop = rect.top;
+
+        // Switch to fixed positioning for smooth dragging
+        element.style.position = 'fixed';
+        element.style.left = `${initialLeft}px`;
+        element.style.top = `${initialTop}px`;
+        element.style.right = 'auto';
+        element.style.bottom = 'auto';
+
+        const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+        startX = clientX;
+        startY = clientY;
+
+        window.addEventListener('mousemove', onMove, { passive: false });
+        window.addEventListener('mouseup', onEnd);
+        window.addEventListener('touchmove', onMove, { passive: false });
+        window.addEventListener('touchend', onEnd);
+      }
+
+      function onMove(e) {
+        if (!isDragging) return;
+        e.preventDefault();
+
+        const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+        const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+
+        const deltaX = clientX - startX;
+        const deltaY = clientY - startY;
+
+        let newLeft = initialLeft + deltaX;
+        let newTop = initialTop + deltaY;
+
+        // Clamp inside screen bounds
+        const maxLeft = window.innerWidth - element.offsetWidth - 12;
+        const maxTop = window.innerHeight - element.offsetHeight - 12;
+        newLeft = Math.max(12, Math.min(newLeft, maxLeft));
+        newTop = Math.max(76, Math.min(newTop, maxTop)); // Preserve top HUD
+
+        element.style.left = `${newLeft}px`;
+        element.style.top = `${newTop}px`;
+      }
+
+      function onEnd() {
+        if (!isDragging) return;
+        isDragging = false;
+        element.classList.remove('dragging');
+
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onEnd);
+        window.removeEventListener('touchmove', onMove);
+        window.removeEventListener('touchend', onEnd);
+      }
+
+      handle.addEventListener('mousedown', onStart);
+      handle.addEventListener('touchstart', onStart, { passive: true });
+    }
+
+    function initDraggablePanels() {
+      // 1. Make Building/District Inspection Card Draggable via Header
+      const card = document.getElementById('explorer-card');
+      const cardHeader = document.getElementById('explorer-card-header');
+      if (card && cardHeader) {
+        makeElementDraggable(card, cardHeader);
+      }
+
+      // 2. Make Subterranean Telemetry HUD Draggable via Grip
+      const underHud = document.getElementById('underground-hud');
+      const underGrip = document.getElementById('underground-hud-grip');
+      if (underHud && underGrip) {
+        makeElementDraggable(underHud, underGrip);
+      }
+    }
+
+    function toggleDayNightLighting() {
+      sfx.clickPop();
+      isDayLighting = !isDayLighting;
+      const label = document.getElementById('btn-lighting-label');
+      
+      if (isDayLighting) {
+        scene.background = new THREE.Color(0xdce7f5);
+        scene.fog = new THREE.FogExp2(0xdce7f5, 0.00085);
+        ambientLight.color.setHex(0xffffff);
+        ambientLight.intensity = 1.6;
+        dirLight.color.setHex(0xfff8eb);
+        dirLight.intensity = 2.2;
+        dirLight.position.set(380, 580, 280);
+        label.innerText = "Night Mode";
+      } else {
+        scene.background = new THREE.Color(0x03060f);
+        scene.fog = new THREE.FogExp2(0x03060f, 0.0009);
+        ambientLight.color.setHex(0x182244);
+        ambientLight.intensity = 1.4;
+        dirLight.color.setHex(0x94bbfb);
+        dirLight.intensity = 1.8;
+        label.innerText = "Daylight Mode";
+      }
+    }
+
+    /* ===========================================================
+       6. SLIDE SPECIFIC FUNCTIONALITY: CANVAS QUAKE & LEDGER
+       =========================================================== */
+    // Slide 6: Real-time Canvas Seismic Simulation
+    let quakeTime = 0;
+    let isQuakeActive = false;
+
+    function initSeismicSimulation() {
+      const canvas = document.getElementById('seismic-canvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+      }
+      resizeCanvas();
+      window.addEventListener('resize', resizeCanvas);
+
+      function renderSeismicFrame() {
+        ctx.fillStyle = '#050a14';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const w = canvas.width;
+        const h = canvas.height;
+        const groundY = h * 0.74;
+
+        let groundDisplacement = 0;
+        if (isQuakeActive) {
+          quakeTime += 0.08;
+          groundDisplacement = Math.sin(quakeTime * 6) * 22 * Math.exp(-quakeTime * 0.08);
+          if (quakeTime > 30) {
+            isQuakeActive = false;
+            document.getElementById('quake-status-label').innerText = "Status: Soil Ambient";
+          }
+        }
+
+        // Bedrock
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(0, groundY + groundDisplacement, w, h - groundY);
+
+        // Ground Seismic Wave Line
+        ctx.strokeStyle = isQuakeActive ? 'rgba(239, 68, 68, 0.4)' : 'rgba(0, 240, 255, 0.2)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let x = 0; x < w; x += 10) {
+          const wave = isQuakeActive ? Math.sin((x + quakeTime * 50) * 0.05) * 8 : 0;
+          ctx.lineTo(x, groundY + 25 + groundDisplacement + wave);
+        }
+        ctx.stroke();
+
+        // 1. LEFT: Rigid Conventional Building (Fails under shear)
+        const leftX = w * 0.28;
+        const towerW = 45;
+        const towerH = 140;
+        const swayRigid = groundDisplacement * 1.8;
+
+        ctx.save();
+        ctx.translate(leftX + groundDisplacement, groundY + groundDisplacement);
+        ctx.rotate((swayRigid * Math.PI) / 180);
+
+        ctx.fillStyle = isQuakeActive ? 'rgba(239, 68, 68, 0.25)' : 'rgba(100, 116, 139, 0.3)';
+        ctx.strokeStyle = isQuakeActive ? '#ef4444' : '#64748b';
+        ctx.lineWidth = 2;
+        ctx.fillRect(-towerW / 2, -towerH, towerW, towerH);
+        ctx.strokeRect(-towerW / 2, -towerH, towerW, towerH);
+
+        if (isQuakeActive && Math.abs(swayRigid) > 10) {
+          ctx.strokeStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.moveTo(-towerW / 4, -towerH * 0.3);
+          ctx.lineTo(towerW / 3, -towerH * 0.5);
+          ctx.lineTo(0, -towerH * 0.7);
+          ctx.stroke();
+        }
+        ctx.restore();
+
+        ctx.fillStyle = '#f87171';
+        ctx.font = '11px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText("Rigid Conventional Tower", leftX, groundY + 45);
+        ctx.fillText(isQuakeActive ? "Severe Shear Failure!" : "Zero Isolation", leftX, groundY + 60);
+
+        // 2. RIGHT: Base-Isolated Wide Trapezoid (Resilient)
+        const rightX = w * 0.72;
+        const trapBottomW = 100;
+        const trapTopW = 60;
+        const trapH = 140;
+        const dampenedSway = groundDisplacement * 0.22;
+
+        ctx.fillStyle = '#f59e0b';
+        [-34, 0, 34].forEach(bx => {
+          ctx.fillRect(rightX + bx - 7, groundY - 10 + groundDisplacement, 14, 10);
+        });
+
+        ctx.save();
+        ctx.translate(rightX + dampenedSway, groundY - 10);
+
+        ctx.beginPath();
+        ctx.moveTo(-trapBottomW / 2, 0);
+        ctx.lineTo(-trapTopW / 2, -trapH);
+        ctx.lineTo(trapTopW / 2, -trapH);
+        ctx.lineTo(trapBottomW / 2, 0);
+        ctx.closePath();
+
+        ctx.fillStyle = 'rgba(0, 240, 255, 0.15)';
+        ctx.fill();
+        ctx.strokeStyle = '#00f0ff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = '#00f0ff';
+        ctx.font = '11px JetBrains Mono';
+        ctx.textAlign = 'center';
+        ctx.fillText("Base-Isolated Wide Trapezoid", rightX, groundY + 45);
+        ctx.fillText(isQuakeActive ? "-78% Lateral Force Dissipated" : "Lead-Rubber Dampers Active", rightX, groundY + 60);
+
+        requestAnimationFrame(renderSeismicFrame);
+      }
+
+      renderSeismicFrame();
+
+      document.getElementById('btn-trigger-quake').addEventListener('click', () => {
+        sfx.quakeRumble();
+        isQuakeActive = true;
+        quakeTime = 0;
+        document.getElementById('quake-status-label').innerText = "Simulating Mw 7.5 Spectral Acceleration...";
+      });
+
+      document.getElementById('btn-reset-quake').addEventListener('click', () => {
+        sfx.clickPop();
+        isQuakeActive = false;
+        quakeTime = 0;
+        document.getElementById('quake-status-label').innerText = "Status: Soil Ambient";
+      });
+    }
+
+    // Slide 11: Populate Demographic Ledger Table
+    function initLedgerTable() {
+      const tbody = document.getElementById('ledger-table-body');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      DISTRICTS_DATA.forEach((d) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td style="font-weight: 600; color: #fff;">${d.name}</td>
+          <td style="color: var(--cyan-bright); font-family: var(--font-mono);">${d.pop}M</td>
+          <td>${(d.pop * 0.8).toFixed(2)}M (~${d.megaPop.toLocaleString()} / frustum)</td>
+          <td>${d.surrPop.toLocaleString()} (20%)</td>
+          <td style="font-family: var(--font-mono);">${d.baseW}m (~${d.baseArea.toLocaleString()} m²)</td>
+          <td>${d.schools}</td>
+          <td style="font-size: 11px;">${d.facilities}</td>
+        `;
+        tr.addEventListener('click', () => {
+          sfx.clickPop();
+          goToSlide(9);
+          redirectCameraToDistrict(d);
+        });
+        tbody.appendChild(tr);
+      });
+    }
+
+    /* ===========================================================
+       7. PRESENTATION SLIDE CONTROLLER & LIFECYCLE (12 SLIDES)
+       =========================================================== */
+    let currentSlideIndex = 0;
+    const slides = document.querySelectorAll('.slide');
+    const totalSlides = slides.length;
+
+    function buildSlideDrawerAndDots() {
+      const dotsContainer = document.getElementById('dots-container');
+      const drawerList = document.getElementById('drawer-list');
+
+      slides.forEach((slide, idx) => {
+        const dot = document.createElement('div');
+        dot.className = `slide-dot ${idx === 0 ? 'active' : ''}`;
+        dot.title = slide.dataset.title;
+        dot.addEventListener('click', () => goToSlide(idx));
+        dotsContainer.appendChild(dot);
+
+        const item = document.createElement('div');
+        item.className = `drawer-item ${idx === 0 ? 'active' : ''}`;
+        item.innerHTML = `
+          <span class="drawer-num">${String(idx + 1).padStart(2, '0')}</span>
+          <span class="drawer-name">${slide.dataset.title}</span>
+        `;
+        item.addEventListener('click', () => {
+          goToSlide(idx);
+          toggleDrawer(false);
+        });
+        drawerList.appendChild(item);
+      });
+    }
+
+    function goToSlide(index) {
+      if (index < 0 || index >= totalSlides || index === currentSlideIndex) return;
+
+      sfx.slideChime();
+      const prevSlide = slides[currentSlideIndex];
+      const nextSlide = slides[index];
+
+      prevSlide.classList.remove('active');
+      nextSlide.classList.add('active');
+
+      currentSlideIndex = index;
+
+      // Update UI
+      document.getElementById('hud-slide-title').innerText = nextSlide.dataset.title;
+      document.getElementById('counter-current').innerText = String(index + 1).padStart(2, '0');
+      document.getElementById('progress-bar').style.width = `${((index + 1) / totalSlides) * 100}%`;
+
+      document.querySelectorAll('.slide-dot').forEach((d, i) => d.classList.toggle('active', i === index));
+      document.querySelectorAll('.drawer-item').forEach((it, i) => it.classList.toggle('active', i === index));
+
+      document.getElementById('btn-prev-slide').disabled = (index === 0);
+      document.getElementById('btn-next-slide').disabled = (index === totalSlides - 1);
+
+      // Slide 10 (index 9) OrbitControls Handling
+      const webglContainer = document.getElementById('webgl-canvas-container');
+      if (index === 9) {
+        controls.enabled = true;
+        webglContainer.classList.add('interactive-mode');
+      } else {
+        controls.enabled = false;
+        webglContainer.classList.remove('interactive-mode');
+        document.getElementById('explorer-card').classList.remove('active');
+        setXRayOpacity(100);
+        isUndergroundMode = false;
+      }
+
+      // Camera tween
+      const cfg = CAMERA_SLIDE_CONFIGS[index];
+      if (cfg) {
+        animateCameraTo(cfg.pos, cfg.target, 1.8);
+      }
+
+      if (index === 0) runHeroCounters();
+      updateSpeakerNotes(index);
+    }
+
+    function runHeroCounters() {
+      if (typeof gsap === 'undefined') return;
+      const popObj = { val: 0 };
+      const towerObj = { val: 0 };
+      const footObj = { val: 0 };
+      const budgetObj = { val: 0 };
+
+      gsap.to(popObj, {
+        val: 37.5,
+        duration: 2.2,
+        ease: 'power3.out',
+        onUpdate: () => {
+          document.getElementById('counter-pop').innerHTML = `${popObj.val.toFixed(1)}<span class="unit">M</span>`;
+        }
+      });
+
+      gsap.to(towerObj, {
+        val: 120,
+        duration: 2.0,
+        ease: 'power2.out',
+        onUpdate: () => {
+          document.getElementById('counter-megastruct').innerHTML = `${Math.round(towerObj.val)}<span class="unit">Megastructures</span>`;
+        }
+      });
+
+      gsap.to(footObj, {
+        val: 180,
+        duration: 2.2,
+        ease: 'power3.out',
+        onUpdate: () => {
+          document.getElementById('counter-footprint').innerHTML = `${Math.round(footObj.val)}<span class="unit">km²</span>`;
+        }
+      });
+
+      gsap.to(budgetObj, {
+        val: 60,
+        duration: 2.4,
+        ease: 'power3.out',
+        onUpdate: () => {
+          document.getElementById('counter-budget').innerHTML = `$${Math.round(budgetObj.val)}<span class="unit">T</span>`;
+        }
+      });
+    }
+
+    function updateSpeakerNotes(index) {
+      document.getElementById('notes-title').innerText = `SPEAKER NOTES • SLIDE ${index + 1}`;
+      document.getElementById('notes-body').innerText = SPEAKER_NOTES[index] || "";
+    }
+
+    function toggleNotes(show) {
+      sfx.clickPop();
+      const modal = document.getElementById('notes-modal');
+      const isVisible = modal.classList.contains('active');
+      const targetState = (show !== undefined) ? show : !isVisible;
+      modal.classList.toggle('active', targetState);
+    }
+
+    function toggleDrawer(show) {
+      sfx.clickPop();
+      const drawer = document.getElementById('drawer-jump');
+      const isOpen = drawer.classList.contains('open');
+      const target = (show !== undefined) ? show : !isOpen;
+      drawer.classList.toggle('open', target);
+    }
+
+    function toggleFullscreen() {
+      sfx.clickPop();
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    }
+
+    /* ===========================================================
+       8. INITIALIZATION & EVENT LISTENERS
+       =========================================================== */
+    window.addEventListener('DOMContentLoaded', () => {
+      initThreeScene();
+      initDistrictRedirectNav();
+      initSeismicSimulation();
+      initLedgerTable();
+      initDraggablePanels();
+      buildSlideDrawerAndDots();
+      renderLoop();
+
+      // Welcome Button
+      document.getElementById('btn-start-presentation').addEventListener('click', () => {
+        sfx.init();
+        sfx.slideChime();
+        document.getElementById('welcome-screen').classList.add('hidden');
+        runHeroCounters();
+      });
+
+      // Bottom Nav Controls
+      document.getElementById('btn-prev-slide').addEventListener('click', () => goToSlide(currentSlideIndex - 1));
+      document.getElementById('btn-next-slide').addEventListener('click', () => goToSlide(currentSlideIndex + 1));
+
+      // Header Controls
+      document.getElementById('btn-menu-toggle').addEventListener('click', () => toggleDrawer());
+      document.getElementById('btn-close-drawer').addEventListener('click', () => toggleDrawer(false));
+      document.getElementById('btn-notes-toggle').addEventListener('click', () => toggleNotes());
+      document.getElementById('btn-fullscreen-toggle').addEventListener('click', toggleFullscreen);
+
+      // Audio Toggle
+      document.getElementById('btn-audio-toggle').addEventListener('click', () => {
+        sfx.init();
+        const active = sfx.toggle();
+        document.getElementById('audio-label-text').innerText = active ? "SFX: ON" : "SFX: OFF";
+      });
+
+      // Keyboard Presentation Navigation
+      window.addEventListener('keydown', (e) => {
+        const welcome = document.getElementById('welcome-screen');
+        if (!welcome.classList.contains('hidden') && (e.key === ' ' || e.key === 'Enter')) {
+          sfx.init();
+          sfx.slideChime();
+          welcome.classList.add('hidden');
+          runHeroCounters();
+          return;
+        }
+
+        switch (e.key) {
+          case 'ArrowRight':
+          case 'ArrowDown':
+          case ' ':
+            goToSlide(currentSlideIndex + 1);
+            break;
+          case 'ArrowLeft':
+          case 'ArrowUp':
+            goToSlide(currentSlideIndex - 1);
+            break;
+          case 'Home':
+            goToSlide(0);
+            break;
+          case 'End':
+            goToSlide(totalSlides - 1);
+            break;
+          case 'f':
+          case 'F':
+            toggleFullscreen();
+            break;
+          case 'n':
+          case 'N':
+            toggleNotes();
+            break;
+          case 'm':
+          case 'M':
+            toggleDrawer();
+            break;
+        }
+      });
+    });
+  </script>
+</body>
+</html>
